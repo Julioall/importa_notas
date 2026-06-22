@@ -12,6 +12,16 @@
   border-color: #0d5ca3;
 }
 
+#mqi-import-button.mqi-import-disabled,
+#mqi-import-button.mqi-import-disabled:hover {
+  background: #e9ecef;
+  border-color: #ced4da;
+  color: #6c757d;
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 1;
+}
+
 #mqi-import-button.mqi-floating-fallback {
   position: fixed;
   right: 18px;
@@ -29,6 +39,16 @@
 
 #mqi-import-button.mqi-floating-fallback:hover {
   filter: brightness(0.95);
+}
+
+#mqi-import-button.mqi-floating-fallback.mqi-import-disabled,
+#mqi-import-button.mqi-floating-fallback.mqi-import-disabled:hover {
+  background: #e9ecef;
+  border-color: #ced4da;
+  color: #6c757d;
+  box-shadow: none;
+  cursor: not-allowed;
+  filter: none;
 }
 
 #mqi-panel {
@@ -141,10 +161,71 @@
   line-height: 1.35;
 }
 
+#mqi-panel .mqi-subtle-button {
+  display: inline;
+  border: 0;
+  background: transparent;
+  color: #0f6cbf;
+  padding: 0 0 0 6px;
+  font: inherit;
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+#mqi-panel .mqi-subtle-button:hover {
+  color: #0d5ca3;
+}
+
 #mqi-panel .mqi-check {
   display: block;
   margin: 6px 0;
   line-height: 1.3;
+}
+
+#mqi-panel .mqi-prompt-details {
+  margin-top: 10px;
+  border: 1px solid #c9dff2;
+  border-radius: 6px;
+  background: #f8fbff;
+}
+
+#mqi-panel .mqi-prompt-details summary {
+  padding: 8px 10px;
+  color: #0b4f8a;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+#mqi-panel .mqi-prompt-details textarea {
+  display: block;
+  width: calc(100% - 20px);
+  box-sizing: border-box;
+  min-height: 132px;
+  margin: 0 10px 8px;
+  border: 1px solid #c9dff2;
+  border-radius: 6px;
+  padding: 8px;
+  background: #fff;
+  color: #1f1f1f;
+  font: 12px Arial, sans-serif;
+  line-height: 1.35;
+  resize: vertical;
+}
+
+#mqi-panel .mqi-copy-button {
+  margin: 0 10px 10px;
+  border: 1px solid #0f6cbf;
+  border-radius: 6px;
+  background: #fff;
+  color: #0f6cbf;
+  padding: 6px 9px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+#mqi-panel .mqi-copy-button:hover {
+  background: #e7f1fb;
 }
 
 #mqi-panel .mqi-actions {

@@ -1,13 +1,17 @@
 {
   "manifest_version": 3,
-  "name": "Importador de Notas e Feedback",
-  "version": "0.2.0",
+  "name": "Importador de Notas",
+  "version": "0.3.6",
   "description": "Importa CSV/XLSX com nome, nota e feedback para a tabela de correção rápida do Moodle.",
+  "icons": {
+    "48": "icons/icon48.png",
+    "96": "icons/icon96.png"
+  },
   "permissions": [],
   "content_scripts": [
     {
       "matches": [
-        "https://*/mod/assign/*"
+        "https://*/mod/assign/view.php*"
       ],
       "js": ["content.js"],
       "css": ["styles.css"],

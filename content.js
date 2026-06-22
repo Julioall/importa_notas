@@ -5,6 +5,7 @@
     records: [],
     fileName: '',
     lastReport: null,
+    validationWarnings: [],
   };
 
   const COLUMN_ALIASES = {
@@ -22,6 +23,64 @@
       'comentários de feedback', 'observacao', 'observação', 'retorno', 'devolutiva'
     ]
   };
+
+  const TEMPLATE_CSV = [
+    'nome;nota;feedback',
+    'Nome Completo do Aluno;45;Feedback objetivo e individualizado para o aluno.',
+  ].join('\n');
+
+  const CORRECTION_PROMPT = [
+    'Corrija as atividades dos alunos e gere uma planilha para importação no Moodle.',
+    '',
+    'Retorne somente CSV separado por ponto e vírgula, sem Markdown e sem texto adicional.',
+    'Use exatamente estes cabeçalhos:',
+    'nome;nota;feedback',
+    '',
+    'Dados de entrada:',
+    '- Lista de alunos e entregas exportadas do Moodle.',
+    '- Enunciado da atividade, quando disponível.',
+    '- Critérios de avaliação, rubrica ou orientações da atividade, quando disponíveis.',
+    '- Nota máxima ou escala de avaliação, quando disponível.',
+    '',
+    'Regras gerais:',
+    '- Preserve o nome do aluno exatamente como aparece no Moodle.',
+    '- Não invente alunos ausentes na lista de envios.',
+    '- Não invente entrega, conteúdo, prazo, critério, rubrica, pontuação ou informação que não esteja disponível.',
+    '- Avalie somente com base nas evidências presentes na entrega do aluno e nas orientações fornecidas.',
+    '- Quando houver critérios de avaliação, use-os como referência principal.',
+    '- Quando não houver critérios explícitos, avalie de forma geral considerando aderência ao enunciado, completude da resposta, clareza, organização, coerência, aplicação dos conhecimentos solicitados e qualidade da entrega.',
+    '- Use nota numérica, com vírgula ou ponto decimal se necessário.',
+    '- Se não houver entrega ou se o arquivo estiver vazio/inacessível, atribua a nota conforme a evidência disponível e registre isso no feedback.',
+    '- Caso a decisão exija validação humana, ainda assim gere uma sugestão preliminar de nota e feedback, sem afirmar decisão oficial do tutor.',
+    '',
+    'Regras para o feedback:',
+    '- Escreva um feedback curto, claro, individualizado e acolhedor, no padrão do Guia do Tutor.',
+    '- O feedback deve indicar o desempenho do estudante na atividade.',
+    '- Sempre que possível, mencione um ponto positivo observado.',
+    '- Quando houver falhas, explique objetivamente o que precisa ser melhorado.',
+    '- Quando a atividade estiver satisfatória, parabenize o estudante e destaque o atendimento ao que foi solicitado.',
+    '- Quando a atividade estiver parcialmente satisfatória, reconheça o que foi atendido e oriente o que faltou completar, aprofundar ou corrigir.',
+    '- Quando a atividade estiver insatisfatória, reconheça o esforço ou envio, indique a principal lacuna e oriente a revisão com base no enunciado ou nos critérios.',
+    '- Use linguagem respeitosa, motivadora e formativa.',
+    '- Não use tom punitivo, irônico, genérico demais ou acusatório.',
+    '- Não use ponto e vírgula dentro do feedback, para não quebrar o CSV.',
+    '- Não use quebras de linha dentro do feedback.',
+    '- Não assine como tutor no feedback.',
+    '',
+    'Modelos de referência para variar o feedback, sem copiar sempre igual:',
+    '',
+    'Satisfatório:',
+    'Olá, [nome]. Parabéns pelo envio da atividade. Sua entrega atendeu ao que foi solicitado, apresentou boa organização e demonstrou compreensão dos conhecimentos trabalhados. Continue evoluindo e mantendo esse cuidado nas próximas atividades.',
+    '',
+    'Parcialmente satisfatório:',
+    'Olá, [nome]. Obrigado pelo envio da atividade. Você atendeu parte da proposta e apresentou pontos importantes, mas precisa complementar ou ajustar alguns aspectos para atender melhor aos critérios. Revise o enunciado e observe com atenção o que foi solicitado.',
+    '',
+    'Insatisfatório:',
+    'Olá, [nome]. Obrigado pelo envio da atividade. Sua entrega apresenta limitações em relação ao que foi solicitado e precisa ser revista com mais atenção. Retome o enunciado, verifique os critérios da atividade e complemente sua resposta para demonstrar melhor os conhecimentos esperados.',
+    '',
+    'Sem entrega ou arquivo inacessível:',
+    'Olá, [nome]. Não foi possível identificar uma entrega válida para avaliação. Verifique o arquivo enviado e as orientações da atividade no AVA. Caso tenha dúvidas, procure apoio para regularizar sua participação e continuar avançando nos estudos.',
+  ].join('\n');
 
   function normalizeText(value) {
     return String(value ?? '')
@@ -87,18 +146,82 @@
     field.dispatchEvent(new Event('blur', { bubbles: true }));
   }
 
+  function getGradeInputs(root = document) {
+    return [...root.querySelectorAll('input.quickgrade[id^="quickgrade_"], input.quickgrade[name^="quickgrade_"], input[id^="quickgrade_"], input[name^="quickgrade_"]')]
+      .filter(input => !input.id.includes('comments') && !input.name.includes('comments'));
+  }
+
+  function getFeedbackTextareas(root = document) {
+    return [...root.querySelectorAll('textarea.quickgrade[id^="quickgrade_comments_"], textarea.quickgrade[name^="quickgrade_comments_"], textarea[id^="quickgrade_comments_"], textarea[name^="quickgrade_comments_"]')];
+  }
+
+  function getQuickGradingCheckbox() {
+    const direct = document.querySelector('input[type="checkbox"][id^="quickgrading"], input[type="checkbox"][name="quickgrading"]');
+    if (direct) return direct;
+
+    const label = [...document.querySelectorAll('label')]
+      .find(item => normalizeText(item.textContent) === 'avaliacao rapida');
+    const targetId = label?.getAttribute('for');
+    if (!targetId) return null;
+
+    return document.getElementById(targetId);
+  }
+
+  function getPageReadiness() {
+    const url = new URL(window.location.href);
+    const table = document.querySelector('table#submissions');
+    const root = table || document;
+    const gradeFields = getGradeInputs(root);
+    const feedbackFields = getFeedbackTextareas(root);
+    const quickGradingCheckbox = getQuickGradingCheckbox();
+    const isAssignView = /\/mod\/assign\/view\.php$/.test(url.pathname);
+    const isGradingAction = url.searchParams.get('action') === 'grading';
+    const quickGradingEnabled = Boolean(quickGradingCheckbox?.checked);
+
+    return {
+      isSupported: isAssignView && isGradingAction && quickGradingEnabled && Boolean(table) && gradeFields.length > 0 && feedbackFields.length > 0,
+      canShowButton: isAssignView && isGradingAction && Boolean(table) && Boolean(quickGradingCheckbox),
+      isAssignView,
+      isGradingAction,
+      hasQuickGradingOption: Boolean(quickGradingCheckbox),
+      quickGradingEnabled,
+      hasTable: Boolean(table),
+      gradeCount: gradeFields.length,
+      feedbackCount: feedbackFields.length,
+    };
+  }
+
+  function formatPageReadinessError(readiness) {
+    if (!readiness.isAssignView || !readiness.isGradingAction) {
+      return 'Abra a tela de correção rápida do Moodle: /mod/assign/view.php?action=grading.';
+    }
+    if (!readiness.hasQuickGradingOption) return 'Opção Avaliação rápida não encontrada nesta página.';
+    if (!readiness.quickGradingEnabled) return 'Marque a opção Avaliação rápida para exibir os campos de Nota e Comentários de feedback.';
+    if (!readiness.hasTable) return 'Tabela de envios do Moodle não encontrada nesta página.';
+    if (!readiness.gradeCount) return 'Campo de Nota não encontrado na tabela de correção rápida.';
+    if (!readiness.feedbackCount) return 'Campo de Comentários de feedback não encontrado na tabela de correção rápida.';
+    return 'Esta página não parece ser uma tela de correção rápida compatível.';
+  }
+
   function createUI() {
     if (document.getElementById('mqi-import-button')) return;
 
+    const readiness = getPageReadiness();
+    if (!readiness.canShowButton) return;
+
     const gradeNavItem = findGradeNavItem();
-    const hasQuickGradeFields = document.querySelector('table#submissions, input.quickgrade[id^="quickgrade_"], textarea[id^="quickgrade_comments_"]');
-    if (!gradeNavItem && !hasQuickGradeFields) return;
 
     const button = document.createElement('button');
     button.id = 'mqi-import-button';
     button.type = 'button';
-    button.className = 'btn btn-primary mqi-import-button';
+    button.className = readiness.isSupported
+      ? 'btn btn-primary mqi-import-button'
+      : 'btn btn-secondary mqi-import-button mqi-import-disabled';
     button.textContent = 'Importar';
+    button.disabled = !readiness.isSupported;
+    button.title = readiness.isSupported
+      ? 'Importar notas e feedback'
+      : formatPageReadinessError(readiness);
     button.addEventListener('click', togglePanel);
 
     if (gradeNavItem) {
@@ -141,6 +264,7 @@
         <div class="mqi-help">
           Importe um <strong>CSV</strong> ou <strong>XLSX</strong> com cabeçalhos:<br>
           <code>nome</code>, <code>nota</code>, <code>feedback</code>
+          <button type="button" id="mqi-download-template" class="mqi-subtle-button">baixar modelo</button>
         </div>
 
         <div class="mqi-file-row">
@@ -164,6 +288,12 @@
           Permitir comparação flexível de nomes
         </label>
 
+        <details class="mqi-prompt-details">
+          <summary>Prompt de correção</summary>
+          <textarea id="mqi-correction-prompt" readonly>${escapeHtml(CORRECTION_PROMPT)}</textarea>
+          <button type="button" id="mqi-copy-prompt" class="mqi-copy-button">Copiar prompt</button>
+        </details>
+
         <div class="mqi-actions">
           <button type="button" id="mqi-preview">Verificar</button>
           <button type="button" id="mqi-apply" class="primary">Preencher página</button>
@@ -180,6 +310,8 @@
 
     panel.querySelector('#mqi-close').addEventListener('click', () => panel.remove());
     panel.querySelector('#mqi-file').addEventListener('change', onFileSelected);
+    panel.querySelector('#mqi-download-template').addEventListener('click', downloadTemplate);
+    panel.querySelector('#mqi-copy-prompt').addEventListener('click', copyCorrectionPrompt);
     panel.querySelector('#mqi-preview').addEventListener('click', previewImport);
     panel.querySelector('#mqi-apply').addEventListener('click', applyImport);
   }
@@ -205,6 +337,63 @@
     if (el) el.textContent = message;
   }
 
+  function downloadTemplate() {
+    const blob = new Blob([`\uFEFF${TEMPLATE_CSV}\n`], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'modelo_importacao_notas.csv';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  async function copyCorrectionPrompt() {
+    const prompt = document.getElementById('mqi-correction-prompt')?.value || CORRECTION_PROMPT;
+    const button = document.getElementById('mqi-copy-prompt');
+
+    try {
+      await copyTextToClipboard(prompt);
+      if (button) {
+        button.textContent = 'Copiado';
+        window.setTimeout(() => {
+          button.textContent = 'Copiar prompt';
+        }, 1600);
+      }
+    } catch (error) {
+      console.error(error);
+      log('Não foi possível copiar automaticamente. Selecione o prompt e copie manualmente.');
+    }
+  }
+
+  async function copyTextToClipboard(text) {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.setAttribute('readonly', '');
+    textarea.style.position = 'fixed';
+    textarea.style.left = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.select();
+    const copied = document.execCommand('copy');
+    textarea.remove();
+    if (!copied) throw new Error('Falha ao copiar texto.');
+  }
+
+  function escapeHtml(value) {
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
   async function onFileSelected(event) {
     const file = event.target.files?.[0];
     const fileNameEl = document.getElementById('mqi-file-name');
@@ -214,6 +403,10 @@
     if (!file) return;
 
     try {
+      if (!/\.(csv|txt|tsv|xlsx)$/i.test(file.name)) {
+        throw new Error('Formato não suportado. Use CSV, TSV, TXT ou XLSX.');
+      }
+
       STATE.fileName = file.name;
       const lower = file.name.toLowerCase();
       let rows;
@@ -225,19 +418,34 @@
         rows = parseDelimitedText(text);
       }
 
-      STATE.records = rowsToRecords(rows);
+      const parsed = parseImportRows(rows);
+      STATE.records = parsed.records;
+      STATE.validationWarnings = parsed.warnings;
       STATE.lastReport = null;
-      log([
+      const lines = [
         `Arquivo: ${file.name}`,
+        'Validação: arquivo compatível.',
         `Registros válidos importados: ${STATE.records.length}`,
         '',
         'Use “Verificar” antes de preencher.',
         'A extensão preenche a tela, mas não salva no Moodle.'
-      ].join('\n'));
+      ];
+
+      if (STATE.validationWarnings.length) {
+        lines.push('');
+        lines.push('Avisos de validação:');
+        lines.push(...STATE.validationWarnings.slice(0, 8).map(warning => `- ${warning}`));
+        if (STATE.validationWarnings.length > 8) {
+          lines.push(`- Mais ${STATE.validationWarnings.length - 8} aviso(s).`);
+        }
+      }
+
+      log(lines.join('\n'));
     } catch (error) {
       console.error(error);
       STATE.records = [];
       STATE.lastReport = null;
+      STATE.validationWarnings = [];
       log(`Erro ao importar arquivo: ${error.message}`);
     }
   }
@@ -298,8 +506,10 @@
     return counts[0].count > 0 ? counts[0].delimiter : ';';
   }
 
-  function rowsToRecords(rows) {
-    if (!rows || rows.length < 2) return [];
+  function parseImportRows(rows) {
+    if (!rows || rows.length < 2) {
+      throw new Error('Arquivo vazio ou sem linhas de dados. Use as colunas nome, nota e feedback.');
+    }
 
     const headers = rows[0].map(normalizeHeader);
     const indexes = {
@@ -316,14 +526,49 @@
       throw new Error(`Cabeçalhos não encontrados: ${missing.join(', ')}. Use nome, nota e feedback.`);
     }
 
-    return rows.slice(1)
-      .map((row, index) => ({
-        rowNumber: index + 2,
-        nome: String(row[indexes.nome] ?? '').trim(),
-        nota: String(row[indexes.nota] ?? '').trim(),
-        feedback: String(row[indexes.feedback] ?? '').trim(),
-      }))
-      .filter(record => record.nome && (record.nota || record.feedback));
+    const records = [];
+    const warnings = [];
+
+    rows.slice(1).forEach((row, index) => {
+      const rowNumber = index + 2;
+      const nome = String(row[indexes.nome] ?? '').trim();
+      const nota = String(row[indexes.nota] ?? '').trim();
+      const feedback = String(row[indexes.feedback] ?? '').trim();
+      const hasAnyValue = row.some(cell => String(cell ?? '').trim());
+
+      if (!hasAnyValue) return;
+
+      if (!nome) {
+        warnings.push(`Linha ${rowNumber} ignorada: nome vazio.`);
+        return;
+      }
+
+      if (!nota && !feedback) {
+        warnings.push(`Linha ${rowNumber} ignorada: informe nota ou feedback.`);
+        return;
+      }
+
+      if (nota && !isValidImportedGrade(nota)) {
+        warnings.push(`Linha ${rowNumber} ignorada: nota inválida "${nota}".`);
+        return;
+      }
+
+      records.push({ rowNumber, nome, nota, feedback });
+    });
+
+    if (!records.length) {
+      throw new Error('Nenhum registro válido encontrado no arquivo.');
+    }
+
+    return { records, warnings };
+  }
+
+  function isValidImportedGrade(value) {
+    const normalized = normalizeGradeForPage(value, '.');
+    if (!normalized || !/\d/.test(normalized)) return false;
+
+    const number = Number(normalized);
+    return Number.isFinite(number) && number >= 0;
   }
 
   function findHeaderIndex(headers, aliases) {
@@ -362,7 +607,10 @@
   }
 
   function getMoodleRows() {
-    const rows = [...document.querySelectorAll('table#submissions tbody tr, table.generaltable tbody tr, tr')];
+    const table = document.querySelector('table#submissions');
+    const rows = table
+      ? [...table.querySelectorAll('tbody tr')]
+      : [...document.querySelectorAll('table.generaltable tbody tr, tr')];
     const seen = new Set();
     const items = [];
 
@@ -370,12 +618,11 @@
       if (seen.has(row)) continue;
       seen.add(row);
 
-      const gradeInput = [...row.querySelectorAll('input.quickgrade[id^="quickgrade_"], input.quickgrade[name^="quickgrade_"], input[id^="quickgrade_"], input[name^="quickgrade_"]')]
-        .find(input => !input.id.includes('comments') && !input.name.includes('comments'));
+      const gradeInput = getGradeInputs(row)[0];
       const userId = getUserIdFromRow(row, gradeInput);
       const feedbackTextarea = userId
         ? row.querySelector(`textarea#quickgrade_comments_${CSS.escape(userId)}, textarea[name="quickgrade_comments_${CSS.escape(userId)}"]`)
-        : row.querySelector('textarea.quickgrade[id^="quickgrade_comments_"], textarea[name^="quickgrade_comments_"]');
+        : getFeedbackTextareas(row)[0];
 
       const nameCell = row.querySelector('td.username, td[class~="username"], .cell.username');
       const name = extractStudentName(nameCell);
@@ -438,6 +685,11 @@
 
   function buildReport({ apply = false } = {}) {
     clearHighlights();
+
+    const readiness = getPageReadiness();
+    if (!readiness.isSupported) {
+      return { error: formatPageReadinessError(readiness) };
+    }
 
     if (!STATE.records.length) {
       return { error: 'Importe um arquivo CSV ou XLSX primeiro.' };

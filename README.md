@@ -9,9 +9,14 @@ Extensão simples para Chrome/Edge que adiciona o botão **Importar notas** na t
 - Encontra a nota pelo campo `quickgrade_IDDOUSUARIO`.
 - Encontra o feedback pelo campo `quickgrade_comments_IDDOUSUARIO`.
 - Importa CSV, TSV ou XLSX com as colunas `nome`, `nota` e `feedback`.
+- Valida cabeçalhos, linhas úteis e notas antes de liberar a importação.
+- Oferece um modelo CSV para download e um prompt de correção copiável.
 - Preenche os campos da página, mas **não salva automaticamente**.
 
 Depois de revisar, use o botão nativo do Moodle para salvar as alterações.
+
+A extensão só exibe o botão na tela de correção rápida da atividade:
+`/mod/assign/view.php?action=grading`. O botão fica ativo apenas quando **Avaliação rápida** está marcada e a tabela contém campos editáveis de **Nota** e **Comentários de feedback**.
 
 ## Formato da planilha
 
@@ -31,12 +36,17 @@ Também são aceitos cabeçalhos equivalentes:
 ## Uso
 
 1. Abra a tela de correção rápida da atividade no Moodle.
-2. Clique em **Importar notas**.
-3. Escolha o arquivo CSV/XLSX.
-4. Clique em **Verificar** para conferir quantos alunos foram encontrados.
-5. Clique em **Preencher página**.
-6. Revise nota e feedback na tabela.
-7. Clique no botão nativo do Moodle para salvar.
+2. Marque **Avaliação rápida** para exibir os campos editáveis.
+3. Clique em **Importar**.
+4. Se precisar, clique em **baixar modelo** para gerar um CSV de exemplo.
+5. Escolha o arquivo CSV/XLSX.
+6. Revise a validação exibida no painel.
+7. Clique em **Verificar** para conferir quantos alunos foram encontrados.
+8. Clique em **Preencher página**.
+9. Revise nota e feedback na tabela.
+10. Clique no botão nativo do Moodle para salvar.
+
+O bloco **Prompt de correção** no painel pode ser aberto para copiar uma instrução pronta para gerar o CSV no formato aceito pela extensão.
 
 ## Opções
 
