@@ -24,7 +24,7 @@
     ]
   };
 
-  const TEMPLATE_CSV = [
+  const TEMPLATE_CSV_WITH_GRADE = [
     'nome;nota;feedback',
     'Nome Completo do Aluno;45;Feedback objetivo e individualizado para o aluno.',
   ].join('\n');
@@ -46,6 +46,7 @@
     '- Preserve o nome do aluno exatamente como aparece no Moodle.',
     '- Não invente alunos ausentes na lista de envios.',
     '- Não invente entrega, conteúdo, prazo, critério, rubrica, pontuação ou informação que não esteja disponível.',
+    '- Exija que a entrega esteja em arquivo anexado. Entregas feitas apenas em texto, comentário ou mensagem sem arquivo devem ser tratadas como sem entrega válida.',
     '- Avalie somente com base nas evidências presentes na entrega do aluno e nas orientações fornecidas.',
     '- Quando houver critérios de avaliação, use-os como referência principal.',
     '- Quando não houver critérios explícitos, avalie de forma geral considerando aderência ao enunciado, completude da resposta, clareza, organização, coerência, aplicação dos conhecimentos solicitados e qualidade da entrega.',
@@ -81,6 +82,10 @@
     'Sem entrega ou arquivo inacessível:',
     'Olá, [nome]. Não foi possível identificar uma entrega válida para avaliação. Verifique o arquivo enviado e as orientações da atividade no AVA. Caso tenha dúvidas, procure apoio para regularizar sua participação e continuar avançando nos estudos.',
   ].join('\n');
+
+  function getTemplateCsv() {
+    return TEMPLATE_CSV_WITH_GRADE;
+  }
 
   function normalizeText(value) {
     return String(value ?? '')
@@ -179,8 +184,8 @@
     const quickGradingEnabled = Boolean(quickGradingCheckbox?.checked);
 
     return {
-      isSupported: isAssignView && isGradingAction && quickGradingEnabled && Boolean(table) && gradeFields.length > 0 && feedbackFields.length > 0,
-      canShowButton: isAssignView && isGradingAction && Boolean(table) && Boolean(quickGradingCheckbox),
+      isSupported: isAssignView && isGradingAction && Boolean(table) && feedbackFields.length > 0,
+      canShowButton: isAssignView && isGradingAction && Boolean(table) && (Boolean(quickGradingCheckbox) || feedbackFields.length > 0),
       isAssignView,
       isGradingAction,
       hasQuickGradingOption: Boolean(quickGradingCheckbox),
@@ -196,9 +201,8 @@
       return 'Abra a tela de correção rápida do Moodle: /mod/assign/view.php?action=grading.';
     }
     if (!readiness.hasQuickGradingOption) return 'Opção Avaliação rápida não encontrada nesta página.';
-    if (!readiness.quickGradingEnabled) return 'Marque a opção Avaliação rápida para exibir os campos de Nota e Comentários de feedback.';
+    if (!readiness.quickGradingEnabled && !readiness.feedbackCount) return 'Marque a opção Avaliação rápida para exibir o campo de Comentários de feedback.';
     if (!readiness.hasTable) return 'Tabela de envios do Moodle não encontrada nesta página.';
-    if (!readiness.gradeCount) return 'Campo de Nota não encontrado na tabela de correção rápida.';
     if (!readiness.feedbackCount) return 'Campo de Comentários de feedback não encontrado na tabela de correção rápida.';
     return 'Esta página não parece ser uma tela de correção rápida compatível.';
   }
@@ -250,6 +254,16 @@
 
     const panel = document.createElement('section');
     panel.id = 'mqi-panel';
+    const readiness = getPageReadiness();
+    const hasGradeFields = readiness.gradeCount > 0;
+    const headersHelp = '<code>nome</code>, <code>nota</code>, <code>feedback</code>';
+    const overwriteGradeOption = hasGradeFields
+      ? `
+        <label class="mqi-check">
+          <input id="mqi-overwrite-grade" type="checkbox" checked />
+          Sobrescrever nota existente
+        </label>`
+      : '';
     const triggerButton = document.getElementById('mqi-import-button');
     if (triggerButton && !triggerButton.classList.contains('mqi-floating-fallback')) {
       panel.classList.add('mqi-panel-anchored');
@@ -263,7 +277,7 @@
       <main>
         <div class="mqi-help">
           Importe um <strong>CSV</strong> ou <strong>XLSX</strong> com cabeçalhos:<br>
-          <code>nome</code>, <code>nota</code>, <code>feedback</code>
+          ${headersHelp}
           <button type="button" id="mqi-download-template" class="mqi-subtle-button">baixar modelo</button>
         </div>
 
@@ -275,10 +289,7 @@
           </label>
         </div>
 
-        <label class="mqi-check">
-          <input id="mqi-overwrite-grade" type="checkbox" checked />
-          Sobrescrever nota existente
-        </label>
+        ${overwriteGradeOption}
         <label class="mqi-check">
           <input id="mqi-overwrite-feedback" type="checkbox" checked />
           Sobrescrever feedback existente
@@ -341,7 +352,7 @@
   }
 
   function downloadTemplate() {
-    const blob = new Blob([`\uFEFF${TEMPLATE_CSV}\n`], { type: 'text/csv;charset=utf-8' });
+    const blob = new Blob([`\uFEFF${getTemplateCsv()}\n`], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -511,7 +522,7 @@
 
   function parseImportRows(rows) {
     if (!rows || rows.length < 2) {
-      throw new Error('Arquivo vazio ou sem linhas de dados. Use as colunas nome, nota e feedback.');
+      throw new Error('Arquivo vazio ou sem linhas de dados. Use as colunas nome e feedback. A coluna nota é opcional.');
     }
 
     const headers = rows[0].map(normalizeHeader);
@@ -521,12 +532,11 @@
       feedback: findHeaderIndex(headers, COLUMN_ALIASES.feedback),
     };
 
-    const missing = Object.entries(indexes)
-      .filter(([, index]) => index === -1)
-      .map(([name]) => name);
+    const requiredColumns = ['nome', 'feedback'];
+    const missing = requiredColumns.filter(name => indexes[name] === -1);
 
     if (missing.length) {
-      throw new Error(`Cabeçalhos não encontrados: ${missing.join(', ')}. Use nome, nota e feedback.`);
+      throw new Error(`Cabeçalhos não encontrados: ${missing.join(', ')}. Use nome e feedback. A coluna nota é opcional.`);
     }
 
     const records = [];
@@ -535,7 +545,7 @@
     rows.slice(1).forEach((row, index) => {
       const rowNumber = index + 2;
       const nome = String(row[indexes.nome] ?? '').trim();
-      const nota = String(row[indexes.nota] ?? '').trim();
+      const nota = indexes.nota === -1 ? '' : String(row[indexes.nota] ?? '').trim();
       const feedback = String(row[indexes.feedback] ?? '').trim();
       const hasAnyValue = row.some(cell => String(cell ?? '').trim());
 
