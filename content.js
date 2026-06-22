@@ -300,6 +300,9 @@
         </div>
 
         <div id="mqi-log">Nenhum arquivo importado.</div>
+        <div class="mqi-credit">
+          <a href="https://github.com/Julioall" target="_blank" rel="noopener noreferrer">By Julio</a>
+        </div>
       </main>
     `;
 
