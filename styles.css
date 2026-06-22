@@ -1,0 +1,205 @@
+#mqi-import-button.mqi-import-button {
+  margin-left: .5rem;
+}
+
+#mqi-import-button.mqi-import-button.btn-primary {
+  background: #0f6cbf;
+  border-color: #0f6cbf;
+}
+
+#mqi-import-button.mqi-import-button.btn-primary:hover {
+  background: #0d5ca3;
+  border-color: #0d5ca3;
+}
+
+#mqi-import-button.mqi-floating-fallback {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 2147483647;
+  border: 0;
+  border-radius: 8px;
+  padding: 10px 14px;
+  background: #0f6cbf;
+  color: #fff;
+  font: 600 14px Arial, sans-serif;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .22);
+  cursor: pointer;
+}
+
+#mqi-import-button.mqi-floating-fallback:hover {
+  filter: brightness(0.95);
+}
+
+#mqi-panel {
+  position: fixed;
+  right: 18px;
+  bottom: 66px;
+  width: 450px;
+  max-width: calc(100vw - 36px);
+  z-index: 2147483647;
+  background: #fff;
+  border: 1px solid #0f6cbf;
+  border-radius: 8px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, .25);
+  font: 14px Arial, sans-serif;
+  color: #1f1f1f;
+  overflow: hidden;
+}
+
+#mqi-panel.mqi-panel-anchored {
+  position: absolute;
+  right: auto;
+  bottom: auto;
+}
+
+#mqi-panel header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: #0f6cbf;
+  border-bottom: 1px solid #0d5ca3;
+  color: #fff;
+  font-weight: 700;
+}
+
+#mqi-panel header button {
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 2px;
+}
+
+#mqi-panel main {
+  padding: 12px;
+}
+
+#mqi-panel .mqi-file-row {
+  position: relative;
+  margin: 10px 0 12px;
+}
+
+#mqi-panel .mqi-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+}
+
+#mqi-panel .mqi-file-picker {
+  display: flex;
+  align-items: center;
+  min-height: 38px;
+  border: 1px solid #0f6cbf;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+#mqi-panel .mqi-file-button {
+  align-self: stretch;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12px;
+  background: #0f6cbf;
+  color: #fff;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+#mqi-panel .mqi-file-name {
+  min-width: 0;
+  padding: 0 10px;
+  color: #4f5962;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#mqi-panel .mqi-file-picker:hover .mqi-file-button {
+  background: #0d5ca3;
+}
+
+#mqi-panel .mqi-file-input:focus + .mqi-file-picker {
+  box-shadow: 0 0 0 .2rem rgba(15, 108, 191, .25);
+}
+
+#mqi-panel code {
+  background: #e7f1fb;
+  color: #0b4f8a;
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
+#mqi-panel .mqi-help {
+  line-height: 1.35;
+}
+
+#mqi-panel .mqi-check {
+  display: block;
+  margin: 6px 0;
+  line-height: 1.3;
+}
+
+#mqi-panel .mqi-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+#mqi-panel .mqi-actions button {
+  border: 1px solid #0f6cbf;
+  border-radius: 6px;
+  background: #fff;
+  color: #0f6cbf;
+  padding: 7px 10px;
+  cursor: pointer;
+}
+
+#mqi-panel .mqi-actions button:hover {
+  background: #e7f1fb;
+}
+
+#mqi-panel .mqi-actions button.primary {
+  background: #0f6cbf;
+  color: white;
+  border-color: #0f6cbf;
+}
+
+#mqi-panel .mqi-actions button.primary:hover {
+  background: #0d5ca3;
+  border-color: #0d5ca3;
+}
+
+#mqi-log {
+  margin-top: 10px;
+  max-height: 260px;
+  overflow: auto;
+  background: #f8fbff;
+  border: 1px solid #c9dff2;
+  border-radius: 6px;
+  padding: 8px;
+  white-space: pre-wrap;
+  font-size: 12px;
+}
+
+tr.mqi-found {
+  outline: 2px solid #198754 !important;
+  outline-offset: -2px;
+}
+
+tr.mqi-applied {
+  outline: 3px solid #198754 !important;
+  outline-offset: -3px;
+}
+
+tr.mqi-ambiguous {
+  outline: 2px solid #ffc107 !important;
+  outline-offset: -2px;
+}
