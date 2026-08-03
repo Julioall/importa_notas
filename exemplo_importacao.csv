@@ -1,3 +1,4 @@
 nome;nota;feedback;situacao
 Nome Completo do Aluno;45;Feedback objetivo e individualizado para o aluno.;Corrigido
-Outro Aluno;;Não foi possível avaliar o conteúdo do arquivo enviado.;Erro no arquivo
+Outro Aluno;;O arquivo enviado é válido, mas não apresenta o conteúdo solicitado na atividade.;Atensão
+Outro Aluno 2;;Não foi possível ler o arquivo enviado. Envie novamente em um formato válido.;Perigo

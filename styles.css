@@ -903,7 +903,7 @@ li.mqi-assignment-has-pending > .activity-item {
   }
 }
 
-/* Downloads de pendências organizados por curso e categoria (v0.8.1) */
+/* Downloads de pendências organizados por curso e categoria */
 .mqi-course-pending-summary__actions {
   display: inline-flex;
   flex: 0 0 auto;

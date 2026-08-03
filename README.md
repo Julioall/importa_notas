@@ -2,6 +2,8 @@
 
 Extensão simples para Chrome/Edge que adiciona o botão **Importar notas** na tela de correção rápida de atividades do Moodle.
 
+**Versão atual: 2.0.0**
+
 ## O que ela faz
 
 - Lê a tabela `#submissions` da página atual do Moodle.
@@ -34,6 +36,22 @@ Também são aceitos cabeçalhos equivalentes:
 - Nome: `nome`, `aluno`, `estudante`, `discente`, `nome do aluno`, `nome completo`
 - Nota opcional: `nota`, `nota sugerida`, `nota final`, `pontuação`, `score`, `grade`
 - Feedback: `feedback`, `comentário`, `comentários`, `comentários de feedback`, `observação`, `retorno`, `devolutiva`
+
+### Tags de correção
+
+A coluna `situacao` deve usar somente estas tags:
+
+- `Corrigido`: o arquivo pode ser lido e contém conteúdo relevante para a correção.
+- `Atensão`: o arquivo é válido e pode ser lido, mas não apresenta o conteúdo solicitado na atividade.
+- `Perigo`: o arquivo não pode ser lido, está inválido ou não é uma entrega válida.
+
+Os feedbacks devem ser baseados somente em fatos verificáveis no arquivo, nos critérios ou nas instruções da atividade. Não invente respostas, trechos, fontes, esforço, intenção, nota ou resultados. Se algo não puder ser confirmado, informe que não foi possível identificar ou avaliar.
+
+Exemplos de feedback:
+
+- `Corrigido`: “Olá, Ana! Obrigado pelo envio. No seu arquivo, você apresentou as etapas de identificação do problema conforme o critério solicitado. Para fortalecer a resposta, detalhe como chegou ao resultado final. Continue se dedicando!”
+- `Atensão`: “Olá, Bruno! Obrigado pelo envio. O arquivo foi aberto, mas não localizei nele a análise solicitada. Acrescente essa etapa e envie o arquivo novamente.”
+- `Perigo`: “Olá, Carla! Recebi seu envio, mas não foi possível abrir o arquivo para verificar o conteúdo. Reenvie-o em um formato válido para que eu possa realizar a avaliação.”
 
 ## Uso
 
@@ -77,7 +95,6 @@ O bloco **Prompt de correção** no painel pode ser aberto para copiar uma instr
 
 - Torna a coluna e o campo de nota opcionais.
 - Permite importar e preencher feedback mesmo em atividades sem campo de nota.
-- Usa cores específicas para cada situação: azul para Corrigido, vermelho para Erro no arquivo, amarelo para Sem conteúdo relevante, roxo para Revisão necessária e cinza para Sem envio válido.
 - Mantém o download individual usando o nome do aluno e o crédito “By Julio” com link para o LinkedIn.
 
 
@@ -149,3 +166,12 @@ O bloco **Prompt de correção** no painel pode ser aberto para copiar uma instr
 - Remove o compartilhamento persistente das contagens entre páginas de curso e categorias.
 - Faz uma nova consulta ao Moodle ao carregar cada página, evitando falsos positivos por dados antigos.
 - Mantém a validação por comentário de feedback e pela coluna Nota quando disponíveis.
+
+## Versão 2.0.0
+
+- Consolida o fluxo de importação de notas, feedbacks e tags na tela de correção rápida do Moodle.
+- Ajusta o prompt de correção para gerar feedbacks mais humanos, acolhedores, claros e orientados pelos critérios do Guia do Tutor.
+- Exige que os feedbacks sejam baseados em fatos verificáveis no arquivo, nos critérios ou nas instruções da atividade.
+- Proíbe a invenção de respostas, trechos, fontes, esforço, intenção, critérios, notas ou resultados.
+- Limita as tags de correção a `Corrigido`, `Atensão` e `Perigo`.
+- Inclui exemplos de feedback para as três tags e mantém a compatibilidade com variações antigas na importação.
