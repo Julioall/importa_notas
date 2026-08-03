@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '0.8.3';
+  const VERSION = '2.0.0';
 
   const STATE = {
     records: [],
@@ -77,28 +77,41 @@
   const SITUATIONS = [
     { value: '', label: 'Sem tag', tone: 'neutral', alert: false },
     { value: 'corrigido', label: 'Corrigido', tone: 'info', alert: false },
-    { value: 'erro_arquivo', label: 'Erro no arquivo', tone: 'danger', alert: true },
-    { value: 'sem_conteudo_relevante', label: 'Sem conteúdo relevante', tone: 'warning', alert: true },
-    { value: 'revisao_necessaria', label: 'Revisão necessária', tone: 'review', alert: true },
-    { value: 'sem_envio_valido', label: 'Sem envio válido', tone: 'muted', alert: true }
+    { value: 'atensao', label: 'Atensão', tone: 'warning', alert: true },
+    { value: 'perigo', label: 'Perigo', tone: 'danger', alert: true }
   ];
 
   const SITUATION_SYNONYMS = {
-    corrigido: ['corrigido', 'ok', 'satisfatorio', 'satisfatório', 'concluido', 'concluído', 'atendido'],
-    erro_arquivo: ['erro no arquivo', 'arquivo com erro', 'arquivo invalido', 'arquivo inválido', 'arquivo corrompido', 'erro arquivo'],
-    sem_conteudo_relevante: ['sem conteudo relevante', 'sem conteúdo relevante', 'conteudo irrelevante', 'conteúdo irrelevante', 'sem conteudo', 'sem conteúdo'],
-    revisao_necessaria: ['revisao necessaria', 'revisão necessária', 'precisa revisar', 'requer revisao', 'requer revisão', 'pendente'],
-    sem_envio_valido: ['sem envio valido', 'sem envio válido', 'sem entrega', 'nao enviado', 'não enviado']
+    corrigido: [
+      'corrigido', 'ok', 'satisfatorio', 'satisfatório',
+      'concluido', 'concluído', 'atendido',
+      'revisao necessaria', 'revisão necessária',
+      'precisa revisar', 'requer revisao', 'requer revisão', 'pendente'
+    ],
+    atensao: [
+      'atensao', 'atensão', 'atenção',
+      'sem conteudo relevante', 'sem conteúdo relevante',
+      'conteudo irrelevante', 'conteúdo irrelevante',
+      'sem conteudo', 'sem conteúdo'
+    ],
+    perigo: [
+      'perigo', 'erro no arquivo', 'arquivo com erro',
+      'arquivo invalido', 'arquivo inválido', 'arquivo corrompido',
+      'erro arquivo', 'sem envio valido', 'sem envio válido',
+      'sem entrega', 'nao enviado', 'não enviado'
+    ]
   };
 
   const TEMPLATE_CSV = [
     'nome;nota;feedback;situacao',
     'Nome Completo do Aluno;45;Feedback objetivo e individualizado para o aluno.;Corrigido',
-    'Outro Aluno;;Não foi possível avaliar o conteúdo do arquivo enviado.;Erro no arquivo'
+    'Outro Aluno;;O arquivo enviado é válido, mas não apresenta o conteúdo solicitado na atividade.;Atensão',
+    'Outro Aluno 2;;Não foi possível ler o arquivo enviado. Envie novamente em um formato válido.;Perigo'
   ].join('\n');
 
   const CORRECTION_PROMPT = [
-    'Corrija as atividades dos alunos e gere um ARQUIVO CSV para download e importação no Moodle.',
+    'Atue como um tutor acolhedor e criterioso, seguindo as orientações do Guia do Tutor, e corrija as atividades dos alunos.',
+    'Gere um ARQUIVO CSV para download e importação no Moodle.',
     '',
     'Retorne somente o conteúdo do CSV, sem Markdown e sem texto adicional.',
     'Use ponto e vírgula como separador.',
@@ -108,29 +121,45 @@
     'Quando não houver nota, também é aceito:',
     'nome;feedback;situacao',
     '',
-    'A coluna situacao deve usar uma destas tags quando fizer sentido:',
+    'A coluna situacao deve usar somente uma destas três tags:',
     '- Corrigido',
-    '- Erro no arquivo',
-    '- Sem conteúdo relevante',
-    '- Revisão necessária',
-    '- Sem envio válido',
+    '- Atensão',
+    '- Perigo',
     '',
     'Regras gerais:',
     '- Preserve o nome do aluno exatamente como aparece na listagem do Moodle.',
     '- Não invente alunos ausentes na lista de envios.',
     '- Avalie somente com base nas evidências presentes na entrega do aluno e nas orientações fornecidas.',
-    '- Quando não houver conteúdo suficiente para avaliação, sinalize isso em situacao.',
-    '- Use nota numérica quando houver avaliação. Se não for adequado lançar nota, a coluna nota pode ficar vazia.',
-    '- O feedback deve ser curto, claro, acolhedor e individualizado.',
+    '- Todo fato mencionado no feedback deve poder ser confirmado no arquivo do aluno, nos critérios de avaliação ou nas instruções da atividade.',
+    '- Não invente conteúdo, trechos, respostas, fontes, etapas realizadas, intenção, esforço, nota, critério ou resultado que não esteja explícito nas evidências disponíveis.',
+    '- Não presuma que o estudante pesquisou, entendeu, tentou realizar ou concluiu algo quando isso não puder ser verificado.',
+    '- Se uma informação não puder ser confirmada, diga que não foi possível identificá-la ou avaliá-la. Nunca complete lacunas com suposições.',
+    '- Use a tag Corrigido quando o arquivo puder ser lido e tiver conteúdo relevante para a correção, mesmo que existam pontos a melhorar.',
+    '- Use a tag Atensão quando o arquivo for válido e puder ser aberto, mas não apresentar o conteúdo solicitado na atividade.',
+    '- Use a tag Perigo quando o arquivo não puder ser lido, estiver corrompido, inválido ou não for possível identificar uma entrega válida.',
+    '- Use nota numérica somente quando ela puder ser justificada pelos critérios e pelas evidências. Se não for possível justificar a nota, deixe a coluna nota vazia.',
+    '',
+    'Como escrever o feedback:',
+    '- Escreva como uma mensagem humana do tutor diretamente para o estudante, usando o nome dele quando disponível.',
+    '- Comece com uma saudação e agradeça ou reconheça o envio da atividade.',
+    '- Explique o resultado com base nos critérios da atividade: destaque algo que o estudante demonstrou e cite, de forma concreta, o que precisa ser mantido ou melhorado.',
+    '- Quando houver algo a melhorar, explique o motivo e indique um próximo passo prático, como o conteúdo que deve ser estudado, revisto ou acrescentado.',
+    '- Termine com incentivo genuíno e disponibilidade para esclarecer dúvidas, sem prometer resultados nem usar elogios genéricos.',
+    '- Para Atensão, explique com respeito que o arquivo foi aberto, mas não contém o que foi solicitado, e diga exatamente o que deve ser enviado ou acrescentado.',
+    '- Para Perigo, informe que o arquivo não pôde ser lido ou é inválido; não invente uma avaliação e oriente o estudante a reenviar um arquivo válido.',
+    '- Evite tom robótico, acusatório ou punitivo, frases prontas repetidas e comentários vagos como "faça melhor".',
     '- Não use ponto e vírgula dentro do feedback.',
     '- Não use quebras de linha dentro do feedback.',
     '',
+    'Exemplos de feedback baseados em fatos:',
+    '- Corrigido: "Olá, Ana! Obrigado pelo envio da atividade. No seu arquivo, você apresentou as etapas de identificação do problema e justificou a escolha conforme o critério solicitado. Para fortalecer a resposta, detalhe como chegou ao resultado na etapa final. Continue se dedicando!"',
+    '- Atensão: "Olá, Bruno! Obrigado pelo envio. O arquivo foi aberto, mas não localizei nele a análise solicitada na atividade. Para que essa etapa possa ser avaliada, acrescente a análise do caso e envie o arquivo novamente. Se precisar, estou à disposição para orientar."',
+    '- Perigo: "Olá, Carla! Recebi seu envio, mas não foi possível abrir o arquivo para verificar o conteúdo. Por isso, não consigo avaliar a atividade neste momento. Reenvie o arquivo em um formato válido e, se tiver dúvidas, pode me procurar."',
+    '',
     'Exemplos de situacao:',
-    '- Corrigido: quando a atividade foi avaliada normalmente.',
-    '- Erro no arquivo: quando o arquivo está vazio, corrompido ou inacessível.',
-    '- Sem conteúdo relevante: quando o material enviado não atende ao que foi pedido.',
-    '- Revisão necessária: quando a atividade precisa de ajustes importantes.',
-    '- Sem envio válido: quando não há entrega adequada para avaliar.'
+    '- Corrigido: o arquivo é legível e contém material relevante para a correção.',
+    '- Atensão: o arquivo é válido e legível, mas não contém o conteúdo solicitado.',
+    '- Perigo: o arquivo não pode ser lido ou não é uma entrega válida.'
   ].join('\n');
 
   function normalizeText(value) {
@@ -160,10 +189,9 @@
       if (synonyms.some(item => normalizeText(item) === raw)) return key;
     }
 
-    if (raw.includes('erro') && raw.includes('arquivo')) return 'erro_arquivo';
-    if (raw.includes('conteudo') || raw.includes('conteúdo')) return 'sem_conteudo_relevante';
-    if (raw.includes('revisao') || raw.includes('revisão') || raw.includes('pendente')) return 'revisao_necessaria';
-    if (raw.includes('sem envio') || raw.includes('sem entrega')) return 'sem_envio_valido';
+    if (raw.includes('erro') || raw.includes('inval') || raw.includes('corromp') || raw.includes('sem envio') || raw.includes('sem entrega')) return 'perigo';
+    if (raw.includes('conteudo') || raw.includes('atens') || raw.includes('atencao')) return 'atensao';
+    if (raw.includes('revisao') || raw.includes('pendente')) return 'corrigido';
     if (raw.includes('corrig')) return 'corrigido';
     return '';
   }
