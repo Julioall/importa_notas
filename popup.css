@@ -1,0 +1,148 @@
+:root {
+  color-scheme: light;
+  font-family: Arial, sans-serif;
+  background: #f5f7fa;
+  color: #273444;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  width: 340px;
+  min-height: 390px;
+  margin: 0;
+  background: #f5f7fa;
+}
+
+.popup {
+  padding: 18px;
+}
+
+.popup__header {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 18px;
+}
+
+.popup__mark {
+  display: inline-flex;
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  background: #0f6cbf;
+  color: #fff;
+  font-size: 21px;
+  font-weight: 700;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: 16px;
+  line-height: 1.2;
+}
+
+.popup__header p {
+  margin-top: 3px;
+  color: #6b7785;
+  font-size: 12px;
+}
+
+.settings {
+  padding: 13px 0 4px;
+  border-top: 1px solid #dbe2ea;
+}
+
+h2 {
+  margin-bottom: 9px;
+  color: #526171;
+  font-size: 11px;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+
+.setting {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px 7px;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.setting:hover {
+  background: #eaf2fb;
+}
+
+.setting input {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  margin: 1px 0 0;
+  accent-color: #0f6cbf;
+}
+
+.setting strong,
+.setting small {
+  display: block;
+}
+
+.setting strong {
+  color: #273444;
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.setting small {
+  margin-top: 3px;
+  color: #6b7785;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.status {
+  min-height: 18px;
+  margin-top: 14px;
+  color: #198754;
+  font-size: 11px;
+}
+
+.popup__actions {
+  margin-top: 14px;
+}
+
+.popup__actions button {
+  width: 100%;
+  min-height: 34px;
+  border: 0;
+  border-radius: 6px;
+  background: #0f6cbf;
+  color: #fff;
+  cursor: pointer;
+  font: 700 12px Arial, sans-serif;
+}
+
+.popup__actions button:hover,
+.popup__actions button:focus {
+  background: #0b579b;
+}
+
+.status.is-error {
+  color: #b02a37;
+}
+
+.hint {
+  margin-top: 5px;
+  color: #7a8794;
+  font-size: 10px;
+  line-height: 1.4;
+}

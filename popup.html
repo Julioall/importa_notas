@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Importador de Notas</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main class="popup">
+      <header class="popup__header">
+        <div class="popup__mark">✓</div>
+        <div>
+          <h1>Importador de Notas</h1>
+          <p>Preferências de pendências</p>
+        </div>
+      </header>
+
+      <section class="settings" aria-labelledby="settings-title">
+        <h2 id="settings-title">Verificações</h2>
+        <label class="setting">
+          <input type="checkbox" data-setting="coursePendingChecks">
+          <span>
+            <strong>Páginas de curso</strong>
+            <small>Consultar atividades e mostrar o resumo de pendências.</small>
+          </span>
+        </label>
+        <label class="setting">
+          <input type="checkbox" data-setting="categoryPendingChecks">
+          <span>
+            <strong>Páginas de categorias</strong>
+            <small>Agregar pendências dos cursos exibidos.</small>
+          </span>
+        </label>
+      </section>
+
+      <section class="settings" aria-labelledby="display-title">
+        <h2 id="display-title">Exibição e ações</h2>
+        <label class="setting">
+          <input type="checkbox" data-setting="pendingBadges">
+          <span>
+            <strong>Ícones de pendências</strong>
+            <small>Mostrar os indicadores junto às atividades e aos cursos.</small>
+          </span>
+        </label>
+        <label class="setting">
+          <input type="checkbox" data-setting="pendingDownloads">
+          <span>
+            <strong>Botões “Baixar pendentes”</strong>
+            <small>Permitir downloads em lote na página de curso ou categoria.</small>
+          </span>
+        </label>
+      </section>
+
+      <div class="popup__actions">
+        <button type="button" id="save-settings">Salvar e aplicar</button>
+      </div>
+      <p id="status" class="status" role="status" aria-live="polite">Carregando configurações…</p>
+      <p class="hint">Escolha as opções e aplique todas de uma vez. A página do Moodle será recarregada.</p>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>

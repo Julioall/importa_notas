@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '0.8.1';
+  const VERSION = '0.8.2';
 
   const STATE = {
     records: [],
@@ -11,6 +11,7 @@
   };
 
   const COURSE_BADGE_CACHE_TTL = 90 * 1000;
+  const PENDING_CACHE_VERSION = 'v2';
   const COURSE_BADGE_STATE = {
     results: new Map(),
     inFlight: new Map(),
@@ -27,6 +28,32 @@
   const BULK_DOWNLOAD_STATE = {
     running: false,
   };
+
+  const PENDING_FEATURE_DEFAULTS = Object.freeze({
+    coursePendingChecks: true,
+    categoryPendingChecks: true,
+    pendingBadges: true,
+    pendingDownloads: true,
+  });
+  let PENDING_FEATURES = { ...PENDING_FEATURE_DEFAULTS };
+
+  function loadPendingFeatureSettings() {
+    if (!globalThis.chrome?.storage?.local) return Promise.resolve();
+
+    return new Promise(resolve => {
+      chrome.storage.local.get(PENDING_FEATURE_DEFAULTS, values => {
+        PENDING_FEATURES = Object.fromEntries(Object.keys(PENDING_FEATURE_DEFAULTS).map(key => [
+          key,
+          typeof values[key] === 'boolean' ? values[key] : PENDING_FEATURE_DEFAULTS[key],
+        ]));
+        resolve();
+      });
+    });
+  }
+
+  function pendingFeatureEnabled(name) {
+    return PENDING_FEATURES[name] !== false;
+  }
 
   const COLUMN_ALIASES = {
     nome: [
@@ -1419,7 +1446,7 @@
   }
 
   function getCourseBadgeCacheKey(assignmentId) {
-    return `mqi:pending:${window.location.origin}:${assignmentId}`;
+    return `mqi:pending:${PENDING_CACHE_VERSION}:${window.location.origin}:${assignmentId}`;
   }
 
   function readCourseBadgeCache(assignmentId) {
@@ -1460,6 +1487,15 @@
   function ensurePendingBadge(assignment, state = 'loading', count = null, message = '') {
     const { iconHost, badgeHost, assignmentId, name } = assignment;
     if (!(badgeHost instanceof Element)) return null;
+
+    if (!pendingFeatureEnabled('pendingBadges')) {
+      assignment.card.querySelector(`.mqi-pending-badge[data-assignment-id="${CSS.escape(assignmentId)}"]`)?.remove();
+      badgeHost.classList.remove('mqi-pending-badge-layer');
+      iconHost?.classList?.remove('mqi-pending-icon-reference');
+      assignment.card.classList.remove('mqi-assignment-has-pending');
+      delete assignment.card.dataset.mqiPendingCount;
+      return null;
+    }
 
     badgeHost.classList.add('mqi-pending-badge-layer');
     if (iconHost instanceof Element) iconHost.classList.add('mqi-pending-icon-reference');
@@ -1576,8 +1612,12 @@
         const count = parsePendingEvaluationCount(html);
         if (count === null) throw new Error('Campo “Precisa de avaliação” não encontrado');
 
-        writeCourseBadgeCache(assignment.assignmentId, count);
-        return count;
+        const verifiedCount = count > 0
+          ? (await collectPendingRows(assignment, count, { requireSessionKey: false })).selectedUsers.length
+          : 0;
+
+        writeCourseBadgeCache(assignment.assignmentId, verifiedCount);
+        return verifiedCount;
       } finally {
         window.clearTimeout(timeout);
       }
@@ -1655,7 +1695,7 @@
     summary.classList.toggle('has-pending', totalPending > 0);
     summary.classList.toggle('is-clear', !stillLoading && totalPending === 0 && errorCount === 0);
     summary.classList.toggle('has-error', errorCount > 0);
-    if (downloadButton) downloadButton.hidden = totalPending === 0;
+    if (downloadButton) downloadButton.hidden = !pendingFeatureEnabled('pendingDownloads') || totalPending === 0;
 
     if (stillLoading) {
       text.textContent = 'Consultando atividades que precisam de avaliação…';
@@ -1814,7 +1854,7 @@
   }
 
   function getCategoryCourseCacheKey(courseId) {
-    return `mqi:category-pending:${window.location.origin}:${courseId}`;
+    return `mqi:category-pending:${PENDING_CACHE_VERSION}:${window.location.origin}:${courseId}`;
   }
 
   function readCategoryCourseCache(courseId) {
@@ -1860,6 +1900,13 @@
   function ensureCategoryCourseBadge(course, state = 'loading', result = null, message = '') {
     if (!(course.titleHost instanceof Element)) return null;
     let badge = course.titleHost.querySelector(`.mqi-category-pending-badge[data-course-id="${CSS.escape(course.courseId)}"]`);
+
+    if (!pendingFeatureEnabled('pendingBadges')) {
+      badge?.remove();
+      course.container.classList.remove('mqi-category-course-has-pending', 'mqi-category-course-is-clear');
+      delete course.container.dataset.mqiPendingCount;
+      return null;
+    }
 
     if (!badge) {
       badge = document.createElement('span');
@@ -2038,7 +2085,7 @@
     summary.classList.toggle('has-pending', totalPending > 0);
     summary.classList.toggle('is-clear', !stillLoading && totalPending === 0 && errorCount === 0);
     summary.classList.toggle('has-error', errorCount > 0);
-    if (downloadButton) downloadButton.hidden = totalPending === 0;
+    if (downloadButton) downloadButton.hidden = !pendingFeatureEnabled('pendingDownloads') || totalPending === 0;
 
     if (stillLoading) {
       text.textContent = 'Consultando pendências dos cursos exibidos…';
@@ -2217,14 +2264,46 @@
   }
 
   function extractPendingUserIds(doc) {
-    const ids = [];
-    const rows = [...doc.querySelectorAll('table#submissions tbody tr, .gradingtable table tbody tr')];
+    const candidateIds = [];
+    const pendingIds = [];
+    const rows = [...doc.querySelectorAll('table#submissions tbody tr, table.gradingtable tbody tr, .gradingtable table tbody tr')];
+
+    const readFeedback = row => {
+      const field = row.querySelector('textarea[name^="quickgrade_comments_"], textarea[id^="quickgrade_comments_"]');
+      return (field?.value || field?.textContent || '').replace(/\s+/g, ' ').trim();
+    };
+
+    const readGrade = row => {
+      const cell = row.querySelector('td.grade, td[data-field="grade"], td[id$="_c4"]');
+      if (!cell) return '';
+
+      const input = cell.querySelector('input.quickgrade, input[name^="quickgrade_"]');
+      if (input) return (input.value || input.getAttribute('value') || '').trim();
+
+      const clone = cell.cloneNode(true);
+      clone.querySelectorAll('a, button, input, select, textarea, .action-menu, [role="menu"], .commands, .visually-hidden, .accesshide, .sr-only')
+        .forEach(node => node.remove());
+      return (clone.textContent || '').replace(/\s+/g, ' ').trim();
+    };
+
+    const hasGrade = value => {
+      const compact = String(value || '').replace(/\s+/g, '').toLowerCase();
+      return Boolean(compact) && !['-', '–', '—', 'n/a', 'na'].includes(compact);
+    };
+
     rows.forEach(row => {
       const selector = row.querySelector('input[name="selectedusers"][value], input[id^="selectuser_"][value]');
       const raw = selector?.value || (selector?.id || '').replace(/^selectuser_/, '');
-      if (/^\d+$/.test(raw || '')) ids.push(raw);
+      if (!/^\d+$/.test(raw || '')) return;
+
+      candidateIds.push(raw);
+      if (!readFeedback(row) && !hasGrade(readGrade(row))) pendingIds.push(raw);
     });
-    return [...new Set(ids)];
+
+    return {
+      candidateIds: [...new Set(candidateIds)],
+      pendingIds: [...new Set(pendingIds)],
+    };
   }
 
   function knownPendingCount(assignment) {
@@ -2234,9 +2313,10 @@
     return Number.isFinite(cached) ? cached : null;
   }
 
-  async function collectPendingSelection(assignment, expectedPending) {
+  async function collectPendingRows(assignment, expectedPending, { requireSessionKey = true } = {}) {
     const perPage = 500;
     const maximumPages = 50;
+    const candidates = new Set();
     const selected = new Set();
     let sesskey = '';
     let finalOrigin = window.location.origin;
@@ -2248,30 +2328,35 @@
       finalOrigin = parsedUrl.origin;
       sesskey = sesskey || extractSessionKey(doc);
 
-      const pageIds = extractPendingUserIds(doc);
-      const before = selected.size;
-      pageIds.forEach(id => selected.add(id));
-      const added = selected.size - before;
+      const pageResult = extractPendingUserIds(doc);
+      const before = candidates.size;
+      pageResult.candidateIds.forEach(id => candidates.add(id));
+      pageResult.pendingIds.forEach(id => selected.add(id));
+      const added = candidates.size - before;
 
-      if (Number.isFinite(expectedPending) && selected.size >= expectedPending) break;
-      if (!pageIds.length || added === 0) break;
+      if (!pageResult.candidateIds.length || added === 0) break;
     }
 
-    if (!sesskey) {
+    if (requireSessionKey && !sesskey) {
       throw new Error(`Não foi possível localizar a chave de segurança da atividade ${assignment.name}.`);
     }
-    if (!selected.size) {
+    if (Number.isFinite(expectedPending) && expectedPending > 0 && !candidates.size) {
       throw new Error(`O Moodle informou pendências em ${assignment.name}, mas não retornou alunos no filtro “Requer notas”.`);
     }
-    if (Number.isFinite(expectedPending) && selected.size < expectedPending) {
-      throw new Error(`A leitura de ${assignment.name} ficou incompleta: ${selected.size} de ${expectedPending} pendências foram identificadas.`);
+    if (Number.isFinite(expectedPending) && candidates.size < expectedPending) {
+      throw new Error(`A leitura de ${assignment.name} ficou incompleta: ${candidates.size} de ${expectedPending} candidatos foram identificados.`);
     }
 
     return {
       selectedUsers: [...selected],
+      candidateUsers: [...candidates],
       sesskey,
       postUrl: `${finalOrigin}/mod/assign/view.php`,
     };
+  }
+
+  async function collectPendingSelection(assignment, expectedPending) {
+    return collectPendingRows(assignment, expectedPending);
   }
 
   async function collectPendingDownloadMetadata(assignment) {
@@ -2455,7 +2540,7 @@
   }
 
   async function startCourseSubmissionDownloads(button) {
-    if (BULK_DOWNLOAD_STATE.running || !isCourseViewPage()) return;
+    if (!pendingFeatureEnabled('pendingDownloads') || BULK_DOWNLOAD_STATE.running || !isCourseViewPage()) return;
     const assignments = collectCourseAssignments();
     if (!assignments.length) {
       window.alert('Nenhuma atividade do tipo Tarefa foi encontrada nesta página.');
@@ -2519,7 +2604,7 @@
   }
 
   async function startCategorySubmissionDownloads(button) {
-    if (BULK_DOWNLOAD_STATE.running || !isCategoryPage()) return;
+    if (!pendingFeatureEnabled('pendingDownloads') || BULK_DOWNLOAD_STATE.running || !isCategoryPage()) return;
     const courses = collectCategoryCourses();
     if (!courses.length) {
       window.alert('Nenhum curso foi encontrado nesta página de categoria.');
@@ -2579,10 +2664,15 @@
     }
   }
 
-  createUI();
-  installCoursePendingObserver();
-  installCategoryPendingObserver();
-  installStudentDownloadRenaming();
+  async function initializeContentScript() {
+    await loadPendingFeatureSettings();
+    createUI();
+    if (pendingFeatureEnabled('coursePendingChecks')) installCoursePendingObserver();
+    if (pendingFeatureEnabled('categoryPendingChecks')) installCategoryPendingObserver();
+    installStudentDownloadRenaming();
+  }
+
+  initializeContentScript();
 
   let downloadScanTimer = null;
   const downloadObserver = new MutationObserver(mutations => {

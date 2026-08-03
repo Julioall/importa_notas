@@ -133,3 +133,12 @@ O bloco **Prompt de correção** no painel pode ser aberto para copiar uma instr
 - Gera um ZIP por atividade e organiza os arquivos em `Moodle - Pendentes de correção/Categoria/Curso/Atividade - N pendentes.zip`. Na página do curso, a estrutura começa em `Moodle - Pendentes de correção/Curso`.
 - Interrompe o download de uma atividade quando a quantidade de alunos encontrada é menor que o total de pendências informado pelo Moodle, evitando arquivo parcial silencioso.
 - Processa os ZIPs em sequência e mantém somente um arquivo em preparação por vez para reduzir uso de memória.
+
+
+## Versão 0.8.2
+
+- Adiciona um menu de configurações no ícone da extensão.
+- Permite ativar ou desativar a consulta de pendências nas páginas de curso e de categorias.
+- Permite ocultar os ícones de pendências sem desativar a consulta agregada.
+- Permite ocultar e bloquear os botões **Baixar pendentes**.
+- As preferências ficam salvas no navegador e são aplicadas ao recarregar a página do Moodle.
