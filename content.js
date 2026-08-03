@@ -10,16 +10,14 @@
     lastReport: null,
   };
 
-  const COURSE_BADGE_CACHE_TTL = 90 * 1000;
-  const PENDING_CACHE_VERSION = 'v2';
   const COURSE_BADGE_STATE = {
     results: new Map(),
     inFlight: new Map(),
     scanTimer: null,
   };
 
-  // A categoria deve refletir a mesma janela de atualização das páginas de curso.
-  const CATEGORY_COURSE_CACHE_TTL = COURSE_BADGE_CACHE_TTL;
+  // As contagens ficam somente em memória para cada carregamento. Não reutilizar
+  // sessionStorage evita que categoria e curso compartilhem uma leitura antiga.
   const CATEGORY_PENDING_STATE = {
     results: new Map(),
     inFlight: new Map(),
@@ -1446,41 +1444,8 @@
     return (link.textContent || '').replace(/\s+/g, ' ').trim() || `Atividade ${getAssignmentIdFromUrl(link.href)}`;
   }
 
-  function getCourseBadgeCacheKey(assignmentId) {
-    return `mqi:pending:${PENDING_CACHE_VERSION}:${window.location.origin}:${assignmentId}`;
-  }
-
-  function readCourseBadgeCache(assignmentId) {
-    try {
-      const raw = sessionStorage.getItem(getCourseBadgeCacheKey(assignmentId));
-      if (!raw) return null;
-      const cached = JSON.parse(raw);
-      if (!Number.isFinite(cached?.count) || !Number.isFinite(cached?.timestamp)) return null;
-      if (Date.now() - cached.timestamp > COURSE_BADGE_CACHE_TTL) return null;
-      return cached.count;
-    } catch {
-      return null;
-    }
-  }
-
-  function writeCourseBadgeCache(assignmentId, count) {
-    try {
-      sessionStorage.setItem(getCourseBadgeCacheKey(assignmentId), JSON.stringify({
-        count,
-        timestamp: Date.now(),
-      }));
-    } catch {
-      // O cache é apenas uma otimização; falhas não impedem o recurso.
-    }
-  }
-
   function clearCourseBadgeCache(assignments = collectCourseAssignments()) {
     assignments.forEach(({ assignmentId }) => {
-      try {
-        sessionStorage.removeItem(getCourseBadgeCacheKey(assignmentId));
-      } catch {
-        // Ignora armazenamento indisponível.
-      }
       COURSE_BADGE_STATE.results.delete(assignmentId);
     });
   }
@@ -1579,9 +1544,6 @@
   }
 
   async function fetchPendingEvaluationCount(assignment) {
-    const cached = readCourseBadgeCache(assignment.assignmentId);
-    if (cached !== null) return cached;
-
     if (COURSE_BADGE_STATE.inFlight.has(assignment.assignmentId)) {
       return COURSE_BADGE_STATE.inFlight.get(assignment.assignmentId);
     }
@@ -1617,7 +1579,6 @@
           ? (await collectPendingRows(assignment, count, { requireSessionKey: false })).selectedUsers.length
           : 0;
 
-        writeCourseBadgeCache(assignment.assignmentId, verifiedCount);
         return verifiedCount;
       } finally {
         window.clearTimeout(timeout);
@@ -1854,44 +1815,10 @@
     return [...found.values()];
   }
 
-  function getCategoryCourseCacheKey(courseId) {
-    return `mqi:category-pending:${PENDING_CACHE_VERSION}:${window.location.origin}:${courseId}`;
-  }
-
-  function readCategoryCourseCache(courseId) {
-    try {
-      const raw = sessionStorage.getItem(getCategoryCourseCacheKey(courseId));
-      if (!raw) return null;
-      const cached = JSON.parse(raw);
-      if (!Number.isFinite(cached?.timestamp) || Date.now() - cached.timestamp > CATEGORY_COURSE_CACHE_TTL) return null;
-      if (!Number.isFinite(cached?.totalPending) || !Number.isFinite(cached?.activitiesPending)) return null;
-      return cached;
-    } catch {
-      return null;
-    }
-  }
-
-  function writeCategoryCourseCache(courseId, result) {
-    try {
-      sessionStorage.setItem(getCategoryCourseCacheKey(courseId), JSON.stringify({
-        ...result,
-        timestamp: Date.now(),
-      }));
-    } catch {
-      // O cache é opcional.
-    }
-  }
-
   function clearCategoryPendingCache(courses = collectCategoryCourses()) {
     courses.forEach(course => {
-      try {
-        sessionStorage.removeItem(getCategoryCourseCacheKey(course.courseId));
-      } catch {
-        // Ignora armazenamento indisponível.
-      }
       const result = CATEGORY_PENDING_STATE.results.get(course.courseId);
       (result?.assignmentIds || []).forEach(assignmentId => {
-        try { sessionStorage.removeItem(getCourseBadgeCacheKey(assignmentId)); } catch { /* cache opcional */ }
         COURSE_BADGE_STATE.results.delete(assignmentId);
       });
       CATEGORY_PENDING_STATE.results.delete(course.courseId);
@@ -1998,11 +1925,7 @@
     }
   }
 
-  async function fetchCategoryCoursePending(course, { force = false } = {}) {
-    if (!force) {
-      const cached = readCategoryCourseCache(course.courseId);
-      if (cached) return cached;
-    }
+  async function fetchCategoryCoursePending(course) {
     if (CATEGORY_PENDING_STATE.inFlight.has(course.courseId)) {
       return CATEGORY_PENDING_STATE.inFlight.get(course.courseId);
     }
@@ -2032,7 +1955,6 @@
         assignmentIds: assignments.map(item => item.assignmentId),
         errors,
       };
-      writeCategoryCourseCache(course.courseId, result);
       return result;
     })();
 
@@ -2109,7 +2031,7 @@
     let errorCount = 0;
 
     courses.forEach(course => {
-      const cached = force ? null : (CATEGORY_PENDING_STATE.results.get(course.courseId) || readCategoryCourseCache(course.courseId));
+      const cached = force ? null : CATEGORY_PENDING_STATE.results.get(course.courseId);
       if (cached) {
         CATEGORY_PENDING_STATE.results.set(course.courseId, cached);
         ensureCategoryCourseBadge(course, cached.totalPending > 0 ? 'pending' : (cached.errors > 0 ? 'error' : 'clear'), cached, cached.errors ? 'A leitura deste curso foi parcial' : '');
@@ -2122,7 +2044,7 @@
     const toFetch = courses.filter(course => force || !CATEGORY_PENDING_STATE.results.has(course.courseId));
     await runWithConcurrency(toFetch, 2, async course => {
       try {
-        const result = await fetchCategoryCoursePending(course, { force });
+        const result = await fetchCategoryCoursePending(course);
         CATEGORY_PENDING_STATE.results.set(course.courseId, result);
         ensureCategoryCourseBadge(course, result.totalPending > 0 ? 'pending' : (result.errors > 0 ? 'error' : 'clear'), result, result.errors ? 'A leitura deste curso foi parcial' : '');
         if (result.errors > 0) errorCount += 1;
@@ -2311,8 +2233,7 @@
   function knownPendingCount(assignment) {
     const inMemory = COURSE_BADGE_STATE.results.get(assignment.assignmentId);
     if (Number.isFinite(inMemory)) return inMemory;
-    const cached = readCourseBadgeCache(assignment.assignmentId);
-    return Number.isFinite(cached) ? cached : null;
+    return null;
   }
 
   async function collectPendingRows(assignment, expectedPending, { requireSessionKey = true } = {}) {
