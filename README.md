@@ -142,3 +142,10 @@ O bloco **Prompt de correção** no painel pode ser aberto para copiar uma instr
 - Permite ocultar os ícones de pendências sem desativar a consulta agregada.
 - Permite ocultar e bloquear os botões **Baixar pendentes**.
 - As preferências ficam salvas no navegador e são aplicadas ao recarregar a página do Moodle.
+
+
+## Versão 0.8.3
+
+- Remove o compartilhamento persistente das contagens entre páginas de curso e categorias.
+- Faz uma nova consulta ao Moodle ao carregar cada página, evitando falsos positivos por dados antigos.
+- Mantém a validação por comentário de feedback e pela coluna Nota quando disponíveis.
