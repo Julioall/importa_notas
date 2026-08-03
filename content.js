@@ -16,8 +16,8 @@
     scanTimer: null,
   };
 
-  // As contagens ficam somente em memória para cada carregamento. Não reutilizar
-  // sessionStorage evita que categoria e curso compartilhem uma leitura antiga.
+  // Os resultados servem apenas para renderizar a consulta atual. Nunca são
+  // persistidos nem reutilizados em uma nova varredura.
   const CATEGORY_PENDING_STATE = {
     results: new Map(),
     inFlight: new Map(),
@@ -345,71 +345,73 @@
     backdrop.innerHTML = `
       <div id="mqi-modal" role="dialog" aria-modal="true" aria-labelledby="mqi-modal-title">
         <header class="mqi-modal-header">
-          <h2 id="mqi-modal-title">Importar notas</h2>
+          <h2 id="mqi-modal-title">Importar correções</h2>
           <button type="button" id="mqi-close" aria-label="Fechar">×</button>
         </header>
-        <nav class="mqi-tabs" role="tablist" aria-label="Opções do importador">
-          <button type="button" class="mqi-tab is-active" id="mqi-tab-import" data-panel="mqi-panel-import" role="tab" aria-selected="true" aria-controls="mqi-panel-import">Importação</button>
-          <button type="button" class="mqi-tab" id="mqi-tab-bulk" data-panel="mqi-panel-bulk" role="tab" aria-selected="false" aria-controls="mqi-panel-bulk">Lançamento em massa</button>
+        <nav class="mqi-tabs" role="tablist" aria-label="Opções de correção">
+          <button type="button" class="mqi-tab is-active" id="mqi-tab-import" data-panel="mqi-panel-import" role="tab" aria-selected="true" aria-controls="mqi-panel-import">Importar arquivo</button>
+          <button type="button" class="mqi-tab" id="mqi-tab-bulk" data-panel="mqi-panel-bulk" role="tab" aria-selected="false" aria-controls="mqi-panel-bulk">Aplicar em massa</button>
         </nav>
         <main class="mqi-modal-body">
           <section id="mqi-panel-import" class="mqi-tab-panel is-active" role="tabpanel" aria-labelledby="mqi-tab-import">
-            <p class="mqi-panel-intro">Selecione o arquivo de correção para conferir e preencher a página atual do Moodle.</p>
-            <label class="mqi-check"><input id="mqi-overwrite-grade" type="checkbox" checked /> Sobrescrever nota existente</label>
-            <label class="mqi-check"><input id="mqi-overwrite-feedback" type="checkbox" checked /> Sobrescrever feedback existente</label>
-            <label class="mqi-check"><input id="mqi-flex-match" type="checkbox" checked /> Permitir comparação flexível de nomes</label>
+            <p class="mqi-panel-intro">Selecione um arquivo para preencher notas e feedback na página atual.</p>
+            <label class="mqi-check"><input id="mqi-overwrite-grade" type="checkbox" checked /> Substituir notas preenchidas</label>
+            <label class="mqi-check"><input id="mqi-overwrite-feedback" type="checkbox" checked /> Substituir feedback preenchido</label>
+            <label class="mqi-check"><input id="mqi-flex-match" type="checkbox" checked /> Aceitar pequenas diferenças nos nomes</label>
 
             <div class="mqi-field mqi-prompt-field">
-              <label for="mqi-correction-prompt">Prompt de correção</label>
+              <label for="mqi-correction-prompt">Prompt para gerar o arquivo</label>
               <div class="mqi-prompt-layout">
                 <textarea id="mqi-correction-prompt" class="mqi-textarea mqi-prompt-textarea" readonly>${escapeHtml(CORRECTION_PROMPT)}</textarea>
-                <button type="button" id="mqi-copy-prompt" class="mqi-copy-prompt" title="Copiar prompt de correção">▣ <span>Copiar prompt</span></button>
+                <button type="button" id="mqi-copy-prompt" class="mqi-copy-prompt" title="Copiar prompt" aria-label="Copiar prompt"><span class="mqi-copy-icon" aria-hidden="true">⧉</span><span class="mqi-copy-label">Copiar prompt</span></button>
               </div>
             </div>
 
             <div class="mqi-field mqi-file-field">
-              <label for="mqi-file-trigger">Selecionar arquivo</label>
+              <label for="mqi-file-trigger">Arquivo de correção</label>
               <input id="mqi-file" type="file" accept=".csv,.txt,.tsv,.xlsx" hidden />
-              <button type="button" id="mqi-file-trigger" class="mqi-select-trigger" aria-haspopup="dialog">${escapeHtml(STATE.fileName || 'Selecionar arquivo...')}</button>
-              <div id="mqi-file-name" class="mqi-help-text">${STATE.fileName ? escapeHtml(STATE.fileName) : 'Nenhum arquivo selecionado.'}</div>
-              <div class="mqi-help-text mqi-auto-validation">A verificação é feita automaticamente ao selecionar o arquivo.</div>
+              <button type="button" id="mqi-file-trigger" class="mqi-select-trigger mqi-dropzone${STATE.fileName ? ' has-file' : ''}" aria-haspopup="dialog" aria-label="Escolher arquivo de correção">
+                <span class="mqi-dropzone__title">${escapeHtml(STATE.fileName || 'Arraste e solte o arquivo aqui')}</span>
+                <span class="mqi-dropzone__hint">${STATE.fileName ? 'Clique para trocar o arquivo' : 'ou clique para escolher'}</span>
+              </button>
+              <div id="mqi-file-name" class="mqi-help-text"${STATE.fileName ? '' : ' hidden'}>${STATE.fileName ? escapeHtml(STATE.fileName) : ''}</div>
             </div>
 
             <div class="mqi-actions mqi-actions--single">
-              <button type="button" id="mqi-apply-import" class="primary" ${STATE.records.length ? '' : 'disabled'}>Preencher página</button>
+              <button type="button" id="mqi-apply-import" class="primary">Preencher página</button>
             </div>
           </section>
 
           <section id="mqi-panel-bulk" class="mqi-tab-panel" role="tabpanel" aria-labelledby="mqi-tab-bulk" hidden>
             <div class="mqi-field">
-              <label for="mqi-bulk-scope">Aplicar para</label>
+              <label for="mqi-bulk-scope">Aplicar a</label>
               <select id="mqi-bulk-scope" class="mqi-input">
-                <option value="submitted">Todos com envio</option>
+                <option value="submitted">Alunos com envio</option>
                 <option value="all">Todos os alunos exibidos</option>
               </select>
             </div>
             <div class="mqi-field mqi-bulk-grade-field">
               <label for="mqi-bulk-grade">Nota padrão (opcional)</label>
               <div class="mqi-grade-inline">
-                <input id="mqi-bulk-grade" class="mqi-input" type="text" inputmode="decimal" placeholder="Deixe em branco para lançar somente o feedback" />
+                <input id="mqi-bulk-grade" class="mqi-input" type="text" inputmode="decimal" placeholder="Deixe em branco para preencher só o feedback" />
                 <span id="mqi-max-grade-hint" class="mqi-grade-hint"></span>
               </div>
             </div>
             <div class="mqi-field">
-              <label for="mqi-bulk-feedback">Feedback genérico</label>
-              <textarea id="mqi-bulk-feedback" class="mqi-textarea" placeholder="Use {nome} para personalizar o feedback de cada aluno."></textarea>
-              <div class="mqi-help-text">Exemplo: Olá, {nome}. Parabéns pelo envio da atividade.</div>
+              <label for="mqi-bulk-feedback">Feedback</label>
+              <textarea id="mqi-bulk-feedback" class="mqi-textarea" placeholder="Use {nome} para personalizar."></textarea>
+              <div class="mqi-help-text">Exemplo: Olá, {nome}. Parabéns pelo envio.</div>
             </div>
-            <label class="mqi-check"><input id="mqi-bulk-overwrite-grade" type="checkbox" checked /> Sobrescrever nota existente</label>
-            <label class="mqi-check"><input id="mqi-bulk-overwrite-feedback" type="checkbox" checked /> Sobrescrever feedback existente</label>
-            <div class="mqi-help-text mqi-bulk-scope-help">O preenchimento considera somente os alunos carregados na página atual.</div>
+            <label class="mqi-check"><input id="mqi-bulk-overwrite-grade" type="checkbox" checked /> Substituir notas preenchidas</label>
+            <label class="mqi-check"><input id="mqi-bulk-overwrite-feedback" type="checkbox" checked /> Substituir feedback preenchido</label>
+            <div class="mqi-help-text mqi-bulk-scope-help">Aplica somente aos alunos carregados nesta página.</div>
             <div class="mqi-actions mqi-actions--single">
-              <button type="button" id="mqi-apply-bulk" class="primary">Lançar para todos</button>
+              <button type="button" id="mqi-apply-bulk" class="primary">Aplicar em massa</button>
             </div>
           </section>
         </main>
         <footer class="mqi-modal-footer">
-          <div id="mqi-log" class="mqi-log mqi-log--info">${STATE.records.length ? 'Arquivo pronto para preenchimento.' : 'Nenhum arquivo importado.'}</div>
+          <div id="mqi-log" class="mqi-log mqi-log--info"${STATE.records.length ? '' : ' hidden'}>${STATE.records.length ? 'Arquivo pronto.' : ''}</div>
           <div class="mqi-credit">v${VERSION} · <a href="https://www.linkedin.com/in/julioall/" target="_blank" rel="noopener noreferrer">By Julio</a></div>
         </footer>
       </div>
@@ -427,7 +429,12 @@
       tab.addEventListener('click', () => activateModalTab(backdrop, tab.dataset.panel));
     });
     backdrop.querySelector('#mqi-copy-prompt').addEventListener('click', copyCorrectionPrompt);
-    backdrop.querySelector('#mqi-file-trigger').addEventListener('click', () => backdrop.querySelector('#mqi-file').click());
+    const fileTrigger = backdrop.querySelector('#mqi-file-trigger');
+    fileTrigger.addEventListener('click', () => backdrop.querySelector('#mqi-file').click());
+    fileTrigger.addEventListener('dragenter', handleFileDragOver);
+    fileTrigger.addEventListener('dragover', handleFileDragOver);
+    fileTrigger.addEventListener('dragleave', handleFileDragLeave);
+    fileTrigger.addEventListener('drop', handleFileDrop);
     backdrop.querySelector('#mqi-file').addEventListener('change', onFileSelected);
     backdrop.querySelector('#mqi-apply-import').addEventListener('click', applyImport);
     backdrop.querySelector('#mqi-apply-bulk').addEventListener('click', applyBulkLaunch);
@@ -462,10 +469,33 @@
     return sample ? sample.replace(/^\//, '').trim() : '50';
   }
 
+  function handleFileDragOver(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.classList.add('is-dragover');
+    if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+  }
+
+  function handleFileDragLeave(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.relatedTarget instanceof Node && event.currentTarget.contains(event.relatedTarget)) return;
+    event.currentTarget.classList.remove('is-dragover');
+  }
+
+  function handleFileDrop(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.classList.remove('is-dragover');
+    const file = event.dataTransfer?.files?.[0];
+    onFileSelected({ target: { files: file ? [file] : [] } });
+  }
+
   function log(message, tone = 'info') {
     const el = document.getElementById('mqi-log');
     if (!el) return;
     el.className = `mqi-log mqi-log--${tone}`;
+    el.hidden = false;
     if (typeof message === 'string') {
       el.innerHTML = message;
     } else {
@@ -549,10 +579,12 @@
   async function onFileSelected(event) {
     const file = event.target.files?.[0];
     const fileNameEl = document.getElementById('mqi-file-name');
-    const trigger = document.getElementById('mqi-file-trigger');
 
-    if (fileNameEl) fileNameEl.textContent = file ? file.name : 'Nenhum arquivo selecionado.';
-    if (trigger) trigger.textContent = file ? file.name : 'Selecionar arquivo...';
+    if (fileNameEl) {
+      fileNameEl.textContent = file ? file.name : '';
+      fileNameEl.hidden = !file;
+    }
+    updateFileDropzone(file);
     if (!file) return;
 
     try {
@@ -577,7 +609,7 @@
       STATE.lastReport = null;
 
       const applyButton = document.getElementById('mqi-apply-import');
-      if (applyButton) applyButton.disabled = STATE.records.length === 0;
+      if (applyButton) applyButton.disabled = false;
 
       // A seleção do arquivo já executa a conferência sem alterar os campos do Moodle.
       const report = buildImportReport({ apply: false });
@@ -593,9 +625,20 @@
       STATE.validationWarnings = [];
       STATE.lastReport = null;
       const applyButton = document.getElementById('mqi-apply-import');
-      if (applyButton) applyButton.disabled = true;
+      if (applyButton) applyButton.disabled = false;
       log(`<strong>Erro no arquivo.</strong> ${escapeHtml(error.message)}`, 'error');
     }
+  }
+
+  function updateFileDropzone(file) {
+    const trigger = document.getElementById('mqi-file-trigger');
+    if (!trigger) return;
+    const title = trigger.querySelector('.mqi-dropzone__title');
+    const hint = trigger.querySelector('.mqi-dropzone__hint');
+    const hasFile = Boolean(file);
+    trigger.classList.toggle('has-file', hasFile);
+    if (title) title.textContent = file ? file.name : 'Arraste e solte o arquivo aqui';
+    if (hint) hint.textContent = file ? 'Clique para trocar o arquivo' : 'ou clique para escolher';
   }
 
   function parseDelimitedText(text) {
@@ -1103,6 +1146,9 @@
   }
 
   function applyImport() {
+    if (!STATE.fileName || !STATE.records.length) {
+      return log('<strong>Nenhum arquivo selecionado.</strong> Escolha um arquivo antes de preencher a página.', 'warning');
+    }
     const report = buildImportReport({ apply: true });
     if (report.error) return log(`<strong>Não foi possível preencher.</strong> ${escapeHtml(report.error)}`, 'error');
     STATE.lastReport = report;
@@ -1274,7 +1320,7 @@
       : 'Verificação concluída. Nenhum campo foi salvo ainda.';
 
     log(`
-      <div class="mqi-report-title"><strong>${report.mode === 'bulk' ? 'Lançamento em massa' : 'Importação de arquivo'}</strong> · ${scopeLabel}</div>
+      <div class="mqi-report-title"><strong>${report.mode === 'bulk' ? 'Aplicação em massa' : 'Importação de arquivo'}</strong> · ${scopeLabel}</div>
       <div class="mqi-report-chips">${chips.join('')}</div>
       <div class="mqi-report-note">${escapeHtml(actionText)}</div>
       ${sections.join('')}
@@ -1472,12 +1518,6 @@
     return (link.textContent || '').replace(/\s+/g, ' ').trim() || `Atividade ${getAssignmentIdFromUrl(link.href)}`;
   }
 
-  function clearCourseBadgeCache(assignments = collectCourseAssignments()) {
-    assignments.forEach(({ assignmentId }) => {
-      COURSE_BADGE_STATE.results.delete(assignmentId);
-    });
-  }
-
   function ensurePendingBadge(assignment, state = 'loading', count = null, message = '') {
     const { iconHost, badgeHost, assignmentId, name } = assignment;
     if (!(badgeHost instanceof Element)) return null;
@@ -1657,8 +1697,7 @@
     placePendingSummaryAtTop(main, summary);
 
     summary.querySelector('.mqi-course-pending-summary__refresh')?.addEventListener('click', () => {
-      clearCourseBadgeCache();
-      scanCoursePendingCorrections({ force: true });
+      scanCoursePendingCorrections();
     });
     summary.querySelector('.mqi-course-pending-summary__download')?.addEventListener('click', event => {
       startCourseSubmissionDownloads(event.currentTarget);
@@ -1712,27 +1751,22 @@
     await Promise.all(runners);
   }
 
-  async function scanCoursePendingCorrections({ force = false } = {}) {
+  async function scanCoursePendingCorrections() {
     if (!isCourseViewPage()) return;
 
     const assignments = collectCourseAssignments();
     if (!assignments.length) return;
 
+    COURSE_BADGE_STATE.results.clear();
     ensureCoursePendingSummary();
     let errorCount = 0;
 
     assignments.forEach(assignment => {
-      const known = force ? undefined : COURSE_BADGE_STATE.results.get(assignment.assignmentId);
-      if (Number.isFinite(known)) {
-        ensurePendingBadge(assignment, known > 0 ? 'pending' : 'empty', known);
-      } else {
-        ensurePendingBadge(assignment, 'loading');
-      }
+      ensurePendingBadge(assignment, 'loading');
     });
     updateCoursePendingSummary(assignments, errorCount);
 
-    const toFetch = assignments.filter(assignment => force || !Number.isFinite(COURSE_BADGE_STATE.results.get(assignment.assignmentId)));
-    await runWithConcurrency(toFetch, 4, async assignment => {
+    await runWithConcurrency(assignments, 4, async assignment => {
       try {
         const count = await fetchPendingEvaluationCount(assignment);
         COURSE_BADGE_STATE.results.set(assignment.assignmentId, count);
@@ -1771,8 +1805,7 @@
 
     window.addEventListener('pageshow', event => {
       if (event.persisted) {
-        clearCourseBadgeCache();
-        scanCoursePendingCorrections({ force: true });
+        scanCoursePendingCorrections();
       }
     });
   }
@@ -1841,16 +1874,6 @@
     });
 
     return [...found.values()];
-  }
-
-  function clearCategoryPendingCache(courses = collectCategoryCourses()) {
-    courses.forEach(course => {
-      const result = CATEGORY_PENDING_STATE.results.get(course.courseId);
-      (result?.assignmentIds || []).forEach(assignmentId => {
-        COURSE_BADGE_STATE.results.delete(assignmentId);
-      });
-      CATEGORY_PENDING_STATE.results.delete(course.courseId);
-    });
   }
 
   function ensureCategoryCourseBadge(course, state = 'loading', result = null, message = '') {
@@ -2013,8 +2036,7 @@
     placePendingSummaryAtTop(main, summary);
 
     summary.querySelector('.mqi-course-pending-summary__refresh')?.addEventListener('click', () => {
-      clearCategoryPendingCache();
-      scanCategoryPendingCorrections({ force: true });
+      scanCategoryPendingCorrections();
     });
     summary.querySelector('.mqi-course-pending-summary__download')?.addEventListener('click', event => {
       startCategorySubmissionDownloads(event.currentTarget);
@@ -2050,27 +2072,22 @@
     }
   }
 
-  async function scanCategoryPendingCorrections({ force = false } = {}) {
+  async function scanCategoryPendingCorrections() {
     if (!isCategoryPage()) return;
     const courses = collectCategoryCourses();
     if (!courses.length) return;
 
+    CATEGORY_PENDING_STATE.results.clear();
+    COURSE_BADGE_STATE.results.clear();
     ensureCategoryPendingSummary();
     let errorCount = 0;
 
     courses.forEach(course => {
-      const cached = force ? null : CATEGORY_PENDING_STATE.results.get(course.courseId);
-      if (cached) {
-        CATEGORY_PENDING_STATE.results.set(course.courseId, cached);
-        ensureCategoryCourseBadge(course, cached.totalPending > 0 ? 'pending' : (cached.errors > 0 ? 'error' : 'clear'), cached, cached.errors ? 'A leitura deste curso foi parcial' : '');
-      } else {
-        ensureCategoryCourseBadge(course, 'loading');
-      }
+      ensureCategoryCourseBadge(course, 'loading');
     });
     updateCategoryPendingSummary(courses, errorCount);
 
-    const toFetch = courses.filter(course => force || !CATEGORY_PENDING_STATE.results.has(course.courseId));
-    await runWithConcurrency(toFetch, 2, async course => {
+    await runWithConcurrency(courses, 2, async course => {
       try {
         const result = await fetchCategoryCoursePending(course);
         CATEGORY_PENDING_STATE.results.set(course.courseId, result);
@@ -2109,8 +2126,7 @@
 
     window.addEventListener('pageshow', event => {
       if (event.persisted) {
-        clearCategoryPendingCache();
-        scanCategoryPendingCorrections({ force: true });
+        scanCategoryPendingCorrections();
       }
     });
   }
@@ -2258,12 +2274,6 @@
     };
   }
 
-  function knownPendingCount(assignment) {
-    const inMemory = COURSE_BADGE_STATE.results.get(assignment.assignmentId);
-    if (Number.isFinite(inMemory)) return inMemory;
-    return null;
-  }
-
   async function collectPendingRows(assignment, expectedPending, { requireSessionKey = true } = {}) {
     const perPage = 500;
     const maximumPages = 50;
@@ -2311,11 +2321,7 @@
   }
 
   async function collectPendingDownloadMetadata(assignment) {
-    let pending = knownPendingCount(assignment);
-    if (!Number.isFinite(pending)) {
-      pending = await fetchPendingEvaluationCount(assignment);
-      COURSE_BADGE_STATE.results.set(assignment.assignmentId, pending);
-    }
+    const pending = await fetchPendingEvaluationCount(assignment);
 
     if (pending <= 0) {
       return { ...assignment, pending, selectedUsers: [], postUrl: '', sesskey: '' };
@@ -2441,10 +2447,7 @@
   }
 
   async function preparePendingAssignments(assignments, button) {
-    const candidates = assignments.filter(assignment => {
-      const known = knownPendingCount(assignment);
-      return known === null || known > 0;
-    });
+    const candidates = assignments;
     const metadata = new Array(candidates.length);
     let completed = 0;
 
@@ -2456,7 +2459,7 @@
         metadata[index] = {
           ...assignment,
           error: error?.message || String(error),
-          pending: knownPendingCount(assignment),
+          pending: null,
           selectedUsers: [],
         };
       } finally {
