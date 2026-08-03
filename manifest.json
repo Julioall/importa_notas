@@ -1,21 +1,39 @@
 {
   "manifest_version": 3,
   "name": "Importador de Notas",
-  "version": "0.3.7",
-  "description": "Importa CSV/XLSX com nome, nota e feedback para o Moodle, sem bloquear atividades sem nota.",
+  "version": "0.8.1",
+  "description": "Importa correções no Moodle, lança feedback em massa, renomeia arquivos, sinaliza pendências e baixa somente os envios que ainda precisam de correção.",
   "icons": {
     "48": "icons/icon48.png",
     "96": "icons/icon96.png"
   },
-  "permissions": [],
+  "permissions": [
+    "downloads"
+  ],
   "content_scripts": [
     {
       "matches": [
-        "https://*/mod/assign/view.php*"
+        "https://ead.fieg.com.br/mod/assign/view.php*",
+        "https://ead.fieg.com.br/course/view.php*",
+        "https://ead.fieg.com.br/course/index.php*",
+        "https://ead.senai.br/mod/assign/view.php*",
+        "https://ead.senai.br/course/view.php*",
+        "https://ead.senai.br/course/index.php*"
       ],
-      "js": ["content.js"],
-      "css": ["styles.css"],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "styles.css"
+      ],
       "run_at": "document_idle"
     }
-  ]
+  ],
+  "host_permissions": [
+    "https://ead.fieg.com.br/*",
+    "https://ead.senai.br/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  }
 }

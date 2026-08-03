@@ -1,4 +1,3 @@
-nome;nota;feedback
-GUILHERME PINHEIRO;45;Feedback do aluno Guilherme.
-LUIZ GUSTAVO;38;Feedback do aluno Luiz Gustavo.
-MANUELLA PEDRO;42;Feedback da aluna Manuella.
+nome;nota;feedback;situacao
+Nome Completo do Aluno;45;Feedback objetivo e individualizado para o aluno.;Corrigido
+Outro Aluno;;Não foi possível avaliar o conteúdo do arquivo enviado.;Erro no arquivo
