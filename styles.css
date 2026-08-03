@@ -41,7 +41,7 @@
   position: fixed;
   inset: 0;
   z-index: 2147483647;
-  background: rgba(32, 44, 64, .28);
+  background: rgba(0, 0, 0, .2);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -50,12 +50,13 @@
 
 #mqi-modal {
   width: min(590px, calc(100vw - 32px));
+  height: min(650px, calc(100vh - 36px));
   max-height: calc(100vh - 36px);
   overflow: auto;
   background: #fff;
   border: 1px solid #d9e1ea;
-  border-radius: 14px;
-  box-shadow: 0 20px 60px rgba(15, 27, 51, .22);
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(15, 27, 51, .18);
   color: #1d2125;
   font: 14px Arial, sans-serif;
 }
@@ -65,21 +66,22 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 18px 20px 10px;
+  padding: 16px 20px 10px;
+  background: #0f6cbf;
 }
 
 #mqi-modal .mqi-modal-header h2 {
   margin: 0;
   font-size: 20px;
   font-weight: 700;
-  color: #212529;
+  color: #fff;
 }
 
 #mqi-modal #mqi-close {
   border: 0;
   background: transparent;
-  color: #4f5962;
-  font-size: 26px;
+  color: #fff;
+  font-size: 24px;
   line-height: 1;
   cursor: pointer;
 }
@@ -96,7 +98,7 @@
   border-bottom: 3px solid transparent;
   background: transparent;
   color: #495057;
-  padding: 10px 2px 12px;
+  padding: 10px 2px 11px;
   font-size: 16px;
   cursor: pointer;
 }
@@ -155,12 +157,12 @@
 #mqi-modal .mqi-input,
 #mqi-modal .mqi-textarea,
 #mqi-modal .mqi-select-trigger,
-#mqi-modal textarea#mqि-correction-prompt,
+#mqi-modal textarea#mqi-correction-prompt,
 #mqi-modal .mqi-prompt-details textarea {
   width: 100%;
   box-sizing: border-box;
   border: 1px solid #c9d1d9;
-  border-radius: 8px;
+  border-radius: 4px;
   background: #fff;
   color: #1f2328;
   padding: 10px 12px;
@@ -212,7 +214,7 @@
 #mqi-modal .mqi-prompt-details {
   margin: 12px 0 16px;
   border: 1px solid #d9e1ea;
-  border-radius: 10px;
+  border-radius: 4px;
   background: #fafbfd;
 }
 
@@ -239,6 +241,81 @@
   margin-top: 16px;
 }
 
+#mqi-modal .mqi-select-trigger {
+  min-height: 44px;
+  border-style: dashed;
+  background: #f8f9fa;
+  color: #495057;
+}
+
+#mqi-modal .mqi-select-trigger:hover,
+#mqi-modal .mqi-select-trigger:focus {
+  border-color: #0f6cbf;
+  background: #fff;
+  outline: none;
+}
+
+#mqi-modal .mqi-dropzone {
+  display: flex;
+  min-height: 78px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 12px 42px 12px 12px;
+  border: 1px dashed #adb5bd;
+  text-align: center;
+  white-space: normal;
+}
+
+#mqi-modal .mqi-dropzone::after {
+  display: none;
+}
+
+#mqi-modal .mqi-dropzone__title,
+#mqi-modal .mqi-dropzone__hint {
+  display: block;
+  overflow: hidden;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#mqi-modal .mqi-dropzone__title {
+  color: #495057;
+  font-weight: 600;
+}
+
+#mqi-modal .mqi-dropzone__hint {
+  color: #6c757d;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+#mqi-modal .mqi-dropzone.has-file {
+  align-items: flex-start;
+  justify-content: center;
+  text-align: left;
+}
+
+#mqi-modal .mqi-dropzone.is-dragover,
+#mqi-modal .mqi-dropzone.is-dragover:hover {
+  border-color: #0f6cbf;
+  background: #eef5fc;
+  color: #0f6cbf;
+  outline: 2px solid rgba(15, 108, 191, .14);
+  outline-offset: 1px;
+}
+
+#mqi-modal .mqi-file-field .mqi-help-text {
+  color: #6c757d;
+}
+
+#mqi-modal .mqi-file-field #mqi-file-name[hidden],
+#mqi-modal #mqi-log[hidden] {
+  display: none;
+}
+
 #mqi-modal .mqi-actions {
   display: flex;
   justify-content: flex-end;
@@ -249,7 +326,7 @@
 
 #mqi-modal .mqi-actions button {
   min-width: 126px;
-  border-radius: 8px;
+  border-radius: 4px;
   padding: 10px 14px;
   font: inherit;
   cursor: pointer;
@@ -296,7 +373,7 @@
 
 #mqi-modal .mqi-note-box {
   padding: 10px 12px;
-  border-radius: 10px;
+  border-radius: 4px;
   font-size: 13px;
 }
 
@@ -312,7 +389,7 @@
 }
 
 #mqi-modal .mqi-log {
-  border-radius: 10px;
+  border-radius: 4px;
   padding: 12px 14px;
   font-size: 13px;
   line-height: 1.45;
@@ -506,7 +583,7 @@ tr.mqi-status-muted { outline: 2px solid rgba(108, 117, 125, .28) !important; }
 #mqi-modal .mqi-section {
   margin: 0;
   border: 1px solid #d9e1ea;
-  border-radius: 10px;
+  border-radius: 4px;
   background: #fff;
   overflow: hidden;
 }
@@ -673,7 +750,7 @@ li.mqi-assignment-has-pending > .activity-item {
   margin: 0 0 14px;
   padding: 10px 12px;
   border: 1px solid #cfd8e3;
-  border-radius: 8px;
+  border-radius: 4px;
   background: #fff;
   color: #3b4550;
   box-shadow: 0 1px 3px rgba(15, 27, 51, .05);
@@ -704,7 +781,7 @@ li.mqi-assignment-has-pending > .activity-item {
   align-items: center;
   justify-content: center;
   border: 1px solid #c9d1d9;
-  border-radius: 6px;
+  border-radius: 4px;
   background: #fff;
   color: #0f6cbf;
   font-size: 18px;
@@ -774,39 +851,59 @@ li.mqi-assignment-has-pending > .activity-item {
 }
 
 #mqi-modal .mqi-prompt-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: end;
-  gap: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 #mqi-modal .mqi-prompt-textarea {
+  height: 112px;
   min-height: 112px;
-  max-height: 180px;
+  max-height: 112px;
   overflow: auto;
-  resize: vertical;
+  padding-right: 12px;
+  resize: none;
   line-height: 1.42;
 }
 
 #mqi-modal .mqi-copy-prompt {
-  min-height: 36px;
-  border: 0;
-  background: transparent;
+  display: inline-flex;
+  width: auto;
+  min-height: 32px;
+  align-self: flex-end;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid #c9d1d9;
+  border-radius: 4px;
+  background: #fff;
   color: #0f6cbf;
-  padding: 7px 0;
-  white-space: nowrap;
-  font: 600 13px Arial, sans-serif;
+  padding: 6px 10px;
+  font: 600 12px/1.2 Arial, sans-serif;
   cursor: pointer;
 }
 
 #mqi-modal .mqi-copy-prompt:hover,
 #mqi-modal .mqi-copy-prompt:focus {
-  color: #0d5ca3;
-  text-decoration: underline;
+  border-color: #0f6cbf;
+  background: #e9ecef;
+  color: #0f6cbf;
+  outline: none;
 }
 
-#mqi-modal .mqi-auto-validation {
-  margin-top: 4px;
+#mqi-modal .mqi-copy-prompt:focus-visible {
+  outline: 2px solid rgba(15, 108, 191, .35);
+  outline-offset: 1px;
+}
+
+#mqi-modal .mqi-copy-icon {
+  display: block;
+  font-size: 16px;
+  line-height: 1;
+}
+
+#mqi-modal .mqi-copy-label {
+  display: inline;
 }
 
 #mqi-modal .mqi-actions--single {
@@ -880,7 +977,7 @@ li.mqi-assignment-has-pending > .activity-item {
   margin-bottom: 18px;
 }
 
-@media (max-width: 620px) {
+@media (max-width: 650px) {
   #mqi-modal {
     width: min(100%, calc(100vw - 20px));
   }
@@ -894,13 +991,6 @@ li.mqi-assignment-has-pending > .activity-item {
     font-size: 14px;
   }
 
-  #mqi-modal .mqi-prompt-layout {
-    grid-template-columns: 1fr;
-  }
-
-  #mqi-modal .mqi-copy-prompt {
-    justify-self: start;
-  }
 }
 
 /* Downloads de pendências organizados por curso e categoria */
@@ -956,4 +1046,41 @@ li.mqi-assignment-has-pending > .activity-item {
     justify-content: flex-end;
     padding-left: 34px;
   }
+}
+
+/* O modal mantém uma altura estável; somente o conteúdo interno rola. */
+#mqi-modal {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#mqi-modal .mqi-modal-body {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+#mqi-modal .mqi-modal-body::-webkit-scrollbar {
+  display: none;
+}
+
+#mqi-modal .mqi-modal-footer {
+  flex: 0 0 auto;
+}
+
+#mqi-modal .mqi-log {
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+#mqi-modal .mqi-actions--single {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #e5e9ef;
+}
+
+#mqi-modal .mqi-modal-footer {
+  background: #f8f9fa;
 }
