@@ -18,7 +18,8 @@
     scanTimer: null,
   };
 
-  const CATEGORY_COURSE_CACHE_TTL = 5 * 60 * 1000;
+  // A categoria deve refletir a mesma janela de atualização das páginas de curso.
+  const CATEGORY_COURSE_CACHE_TTL = COURSE_BADGE_CACHE_TTL;
   const CATEGORY_PENDING_STATE = {
     results: new Map(),
     inFlight: new Map(),
@@ -1850,7 +1851,7 @@
       found.set(courseId, { courseId, link: nameNode, container, titleHost, name });
     });
 
-    return [...found.values()].slice(0, 40);
+    return [...found.values()];
   }
 
   function getCategoryCourseCacheKey(courseId) {
@@ -1949,23 +1950,24 @@
 
   function discoverAssignmentsFromCourseDocument(doc, baseUrl) {
     const found = new Map();
-    const links = [...doc.querySelectorAll('li.activity.modtype_assign a[href*="/mod/assign/view.php"], .modtype_assign a[href*="/mod/assign/view.php"], a[href*="/mod/assign/view.php"]')];
-    links.forEach(link => {
+    const cards = [...doc.querySelectorAll('li.activity.assign.modtype_assign, li.activity.modtype_assign')];
+
+    cards.forEach(card => {
+      const link = card.querySelector('.activitytitle.modtype_assign a[href*="/mod/assign/view.php"], a[href*="/mod/assign/view.php"]');
+      if (!link) return;
       const href = new URL(link.getAttribute('href') || link.href, baseUrl).href;
       const assignmentId = getAssignmentIdFromUrl(href);
       if (!assignmentId || found.has(assignmentId)) return;
-      const card = link.closest('li.activity.modtype_assign, .modtype_assign, .activity-item') || link.parentElement;
-      const instance = card?.querySelector?.('.instancename');
-      const name = (instance?.textContent || link.textContent || `Atividade ${assignmentId}`).replace(/\s+/g, ' ').trim();
+      const name = extractCourseActivityName(card, link);
       found.set(assignmentId, {
         assignmentId,
         name,
         link: { href },
-        card: card || document.createElement('div'),
+        card,
         iconHost: null,
       });
     });
-    return [...found.values()].slice(0, 120);
+    return [...found.values()];
   }
 
   async function fetchHtmlDocument(url, label) {
