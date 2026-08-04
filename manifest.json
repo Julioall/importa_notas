@@ -38,7 +38,8 @@
       ],
       "css": [
         "styles.css",
-        "ui-refresh.css"
+        "ui-refresh.css",
+        "ui-fix.css"
       ],
       "run_at": "document_idle"
     }
