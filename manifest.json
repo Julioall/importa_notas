@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Importador de Notas",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Importa correções no Moodle, lança feedback em massa, renomeia arquivos, sinaliza pendências e baixa somente os envios que ainda precisam de correção.",
   "icons": {
     "16": "icons/icon16.png",
@@ -37,7 +37,8 @@
         "content.js"
       ],
       "css": [
-        "styles.css"
+        "styles.css",
+        "ui-refresh.css"
       ],
       "run_at": "document_idle"
     }
