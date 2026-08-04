@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Importador de Notas</title>
     <link rel="stylesheet" href="popup.css">
+    <link rel="stylesheet" href="popup-refresh.css">
   </head>
   <body>
     <main class="popup">
@@ -41,14 +42,14 @@
         <label class="setting">
           <input type="checkbox" data-setting="pendingBadges">
           <span>
-            <strong>Ícones de pendências</strong>
+            <strong>Indicadores de pendências</strong>
             <small>Mostrar os indicadores junto às atividades e aos cursos.</small>
           </span>
         </label>
         <label class="setting">
           <input type="checkbox" data-setting="pendingDownloads">
           <span>
-            <strong>Botões “Baixar pendentes”</strong>
+            <strong>Baixar pendentes</strong>
             <small>Permitir downloads em lote na página de curso ou categoria.</small>
           </span>
         </label>
@@ -58,7 +59,7 @@
         <button type="button" id="save-settings">Salvar e aplicar</button>
       </div>
       <p id="status" class="status" role="status" aria-live="polite">Carregando configurações…</p>
-      <p class="hint">Escolha as opções e aplique todas de uma vez. A página do Moodle será recarregada.</p>
+      <p class="hint">As alterações são aplicadas após recarregar a página do Moodle.</p>
     </main>
     <script src="popup.js"></script>
   </body>
