@@ -1,0 +1,257 @@
+/* Camada visual 2.1 — carregada após styles.css para preservar a lógica existente. */
+#mqi-backdrop {
+  background: rgba(17, 24, 39, .42);
+  backdrop-filter: blur(2px);
+  padding: 24px;
+}
+
+#mqi-modal {
+  width: min(640px, calc(100vw - 32px));
+  height: auto;
+  max-height: min(760px, calc(100vh - 40px));
+  border: 1px solid #d6dce3;
+  border-radius: 12px;
+  box-shadow: 0 24px 64px rgba(15, 23, 42, .24);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+#mqi-modal .mqi-modal-header {
+  min-height: 64px;
+  padding: 0 22px;
+  background: #fff;
+  border-bottom: 1px solid #e6e9ed;
+}
+
+#mqi-modal .mqi-modal-header h2 {
+  color: #1f2937;
+  font-size: 19px;
+  letter-spacing: -.01em;
+}
+
+#mqi-modal #mqi-close {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  color: #59636e;
+  font-size: 25px;
+}
+
+#mqi-modal #mqi-close:hover,
+#mqi-modal #mqi-close:focus-visible {
+  background: #f1f3f5;
+  color: #1f2937;
+  outline: none;
+}
+
+#mqi-modal .mqi-tabs {
+  gap: 4px;
+  padding: 10px 16px 0;
+  background: #fff;
+}
+
+#mqi-modal .mqi-tab {
+  flex: 1;
+  border: 0;
+  border-radius: 8px 8px 0 0;
+  padding: 10px 14px 12px;
+  color: #5d6772;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+#mqi-modal .mqi-tab:hover { background: #f6f8fa; }
+
+#mqi-modal .mqi-tab.is-active {
+  color: #0f6cbf;
+  background: #eef5fb;
+  box-shadow: inset 0 -3px 0 #0f6cbf;
+}
+
+#mqi-modal .mqi-modal-body {
+  padding: 22px;
+  overflow-y: auto;
+  background: #f7f8fa;
+}
+
+#mqi-modal .mqi-tab-panel {
+  padding: 20px;
+  border: 1px solid #e2e6ea;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+}
+
+#mqi-modal .mqi-panel-intro {
+  margin-bottom: 16px;
+  color: #5f6975;
+  line-height: 1.5;
+}
+
+#mqi-modal .mqi-field { margin-bottom: 18px; }
+
+#mqi-modal .mqi-field label:first-child {
+  margin-bottom: 7px;
+  color: #303740;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+#mqi-modal .mqi-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 9px 0;
+  color: #424b55;
+  line-height: 1.35;
+}
+
+#mqi-modal .mqi-check input {
+  width: 16px;
+  height: 16px;
+  margin: 1px 0 0;
+  accent-color: #0f6cbf;
+}
+
+#mqi-modal .mqi-input,
+#mqi-modal .mqi-textarea,
+#mqi-modal textarea#mqi-correction-prompt {
+  border-color: #cfd6dd;
+  border-radius: 7px;
+  padding: 10px 11px;
+}
+
+#mqi-modal .mqi-input:focus,
+#mqi-modal .mqi-textarea:focus {
+  border-color: #0f6cbf;
+  box-shadow: 0 0 0 3px rgba(15, 108, 191, .12);
+  outline: none;
+}
+
+#mqi-modal .mqi-prompt-layout {
+  position: relative;
+}
+
+#mqi-modal .mqi-prompt-textarea {
+  min-height: 132px;
+  max-height: 170px;
+  padding-right: 132px;
+  background: #f8fafc;
+  color: #4b5563;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+#mqi-modal .mqi-copy-prompt {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #cbd5df;
+  border-radius: 7px;
+  padding: 7px 10px;
+  background: #fff;
+  color: #315979;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+#mqi-modal .mqi-copy-prompt:hover { background: #eef5fb; border-color: #a9c9e4; }
+
+#mqi-modal .mqi-dropzone {
+  min-height: 112px;
+  border: 2px dashed #b9c5d0;
+  border-radius: 9px;
+  background: #fbfcfd;
+  transition: background .15s ease, border-color .15s ease, box-shadow .15s ease;
+}
+
+#mqi-modal .mqi-dropzone:hover,
+#mqi-modal .mqi-dropzone:focus-visible,
+#mqi-modal .mqi-dropzone.is-dragover {
+  border-color: #0f6cbf;
+  background: #f0f7fd;
+  box-shadow: 0 0 0 3px rgba(15, 108, 191, .10);
+  outline: none;
+}
+
+#mqi-modal .mqi-dropzone__title { color: #26313c; font-size: 14px; }
+#mqi-modal .mqi-dropzone__hint { margin-top: 2px; color: #6d7782; }
+
+#mqi-modal .mqi-actions {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid #edf0f2;
+}
+
+#mqi-modal .mqi-actions button {
+  min-width: 150px;
+  min-height: 42px;
+  border-radius: 7px;
+  font-weight: 650;
+}
+
+#mqi-modal .mqi-actions button.primary {
+  box-shadow: 0 2px 5px rgba(15, 108, 191, .22);
+}
+
+#mqi-modal .mqi-actions button.primary:disabled {
+  border-color: #cbd2d9;
+  background: #dfe4e8;
+  color: #7b858f;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+#mqi-modal .mqi-modal-footer {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 22px;
+  background: #fff;
+}
+
+#mqi-modal .mqi-log {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 7px;
+}
+
+#mqi-modal .mqi-credit {
+  flex: 0 0 auto;
+  margin: 0;
+  white-space: nowrap;
+}
+
+#mqi-modal .mqi-report-chips { gap: 6px; }
+#mqi-modal .mqi-chip { border-radius: 6px; padding: 4px 8px; }
+
+#mqi-import-button.mqi-import-button {
+  border-radius: 6px;
+  font-weight: 600;
+  box-shadow: none;
+}
+
+#mqi-import-button.mqi-floating-fallback {
+  border-radius: 10px;
+  padding: 11px 16px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, .22);
+}
+
+@media (max-width: 620px) {
+  #mqi-backdrop { padding: 10px; align-items: flex-end; }
+  #mqi-modal { width: 100%; max-height: calc(100vh - 20px); border-radius: 14px 14px 0 0; }
+  #mqi-modal .mqi-modal-body { padding: 12px; }
+  #mqi-modal .mqi-tab-panel { padding: 16px; }
+  #mqi-modal .mqi-prompt-textarea { padding-right: 11px; padding-top: 50px; }
+  #mqi-modal .mqi-copy-prompt { left: 9px; right: auto; }
+  #mqi-modal .mqi-modal-footer { align-items: stretch; flex-direction: column; }
+  #mqi-modal .mqi-credit { text-align: center; }
+}
