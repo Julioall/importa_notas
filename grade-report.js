@@ -17,6 +17,15 @@
 
   const normalizeText = (value) => String(value || '').replace(/\s+/g, ' ').trim();
 
+  function visibleText(element) {
+    if (!element) return '';
+    const clone = element.cloneNode(true);
+    clone.querySelectorAll(
+      '.sr-only, .visually-hidden, .accesshide, [aria-hidden="true"], img, svg, i, .userinitials, [data-region="favourite-icon"]'
+    ).forEach((node) => node.remove());
+    return normalizeText(clone.textContent);
+  }
+
   function escapeXml(value) {
     return String(value ?? '')
       .replace(/&/g, '&amp;')
@@ -38,9 +47,10 @@
 
   function getCourseData(card) {
     const id = card.dataset.courseId;
-    const name = normalizeText(card.querySelector('a.coursename')?.textContent) || `Unidade ${id}`;
-    const category = normalizeText(card.querySelector('.categoryname')?.textContent);
-    const courseUrl = card.querySelector('a.coursename')?.href || `${location.origin}/course/view.php?id=${id}`;
+    const courseLink = card.querySelector('a.coursename');
+    const name = visibleText(courseLink) || normalizeText(courseLink?.getAttribute('title')) || `Unidade ${id}`;
+    const category = visibleText(card.querySelector('.categoryname')) || 'Turma sem identificação';
+    const courseUrl = courseLink?.href || `${location.origin}/course/view.php?id=${id}`;
     return { id, name, category, courseUrl };
   }
 
@@ -176,7 +186,8 @@
 
   function extractStudents(doc, totalItemId) {
     return [...doc.querySelectorAll('tr.userrow[data-uid], tr.userrow')].map((row) => {
-      const name = normalizeText(row.querySelector('a.username')?.textContent || row.querySelector('th.user')?.textContent);
+      const nameLink = row.querySelector('a.username, a[href*="/user/view.php"]');
+      const name = visibleText(nameLink) || visibleText(row.querySelector('th.user'));
       const userId = row.dataset.uid || row.id?.match(/(\d+)/)?.[1] || name;
       const gradeCell = row.querySelector(`td[data-itemid="${CSS.escape(totalItemId)}"]`);
       const gradeText = normalizeText(gradeCell?.querySelector('.gradevalue')?.textContent || gradeCell?.textContent);
@@ -237,7 +248,7 @@
   }
 
   function sanitizeSheetName(value, used) {
-    const base = normalizeText(value).replace(/[\\/?*\[\]:]/g, ' ').slice(0, 31) || 'Unidade';
+    const base = normalizeText(value).replace(/[\\/?*\[\]:]/g, ' ').slice(0, 31) || 'Turma';
     let name = base;
     let suffix = 2;
     while (used.has(name.toLowerCase())) {
@@ -253,37 +264,73 @@
   }
 
   function numberCell(value) {
-    return value === null
+    return value === null || value === undefined
       ? '<Cell><Data ss:Type="String"></Data></Cell>'
       : `<Cell ss:StyleID="Grade"><Data ss:Type="Number">${value}</Data></Cell>`;
   }
 
+  function groupReportsByClass(reports) {
+    const groups = new Map();
+    reports.forEach((report) => {
+      const key = normalizeText(report.category).toLowerCase() || `curso-${report.id}`;
+      if (!groups.has(key)) {
+        groups.set(key, { category: report.category || report.name, reports: [] });
+      }
+      groups.get(key).reports.push(report);
+    });
+    return [...groups.values()];
+  }
+
+  function buildClassWorksheet(group, usedNames) {
+    const reports = group.reports;
+    const studentMap = new Map();
+
+    reports.forEach((report) => {
+      report.students.forEach((student) => {
+        const key = student.userId || normalizeText(student.name).toLowerCase();
+        if (!studentMap.has(key)) {
+          studentMap.set(key, { userId: key, name: student.name, grades: new Map() });
+        }
+        const target = studentMap.get(key);
+        if (!target.name || student.name.length > target.name.length) target.name = student.name;
+        target.grades.set(report.id, student.grade);
+      });
+    });
+
+    const students = [...studentMap.values()].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+    const sheetName = sanitizeSheetName(group.category, usedNames);
+    const columns = `<Column ss:Width="290"/>${reports.map(() => '<Column ss:Width="145"/>').join('')}`;
+    const header = `<Row>${textCell('Aluno', 'Header')}${reports.map((report) => textCell(report.name, 'Header')).join('')}</Row>`;
+    const rows = students.map((student) =>
+      `<Row>${textCell(student.name)}${reports.map((report) => numberCell(student.grades.has(report.id) ? student.grades.get(report.id) : null)).join('')}</Row>`
+    ).join('');
+    const lastColumn = reports.length + 1;
+
+    return `<Worksheet ss:Name="${escapeXml(sheetName)}"><Table>
+      ${columns}${header}${rows}
+    </Table><WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel"><FreezePanes/><FrozenNoSplit/><SplitHorizontal>1</SplitHorizontal><TopRowBottomPane>1</TopRowBottomPane><AutoFilter x:Range="R1C1:R${students.length + 1}C${lastColumn}" xmlns:x="urn:schemas-microsoft-com:office:excel"/></WorksheetOptions></Worksheet>`;
+  }
+
   function buildWorkbookXml(reports) {
     const usedNames = new Set(['situação']);
-    const worksheets = reports.map((report) => {
-      const sheetName = sanitizeSheetName(report.name, usedNames);
-      const rows = report.students.map((student) => `<Row>${textCell(student.name)}${numberCell(student.grade)}</Row>`).join('');
-      return `<Worksheet ss:Name="${escapeXml(sheetName)}"><Table>
-        <Column ss:Width="290"/><Column ss:Width="120"/>
-        <Row>${textCell('Aluno', 'Header')}${textCell(report.name, 'Header')}</Row>${rows}
-      </Table><WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel"><FreezePanes/><FrozenNoSplit/><SplitHorizontal>1</SplitHorizontal><TopRowBottomPane>1</TopRowBottomPane><AutoFilter x:Range="R1C1:R${report.students.length + 1}C2" xmlns:x="urn:schemas-microsoft-com:office:excel"/></WorksheetOptions></Worksheet>`;
-    }).join('');
+    const groups = groupReportsByClass(reports);
+    const worksheets = groups.map((group) => buildClassWorksheet(group, usedNames)).join('');
 
     const summaryRows = reports.map((report) => {
       const summary = classifyGrades(report.students);
-      return `<Row>${textCell(report.reportUrl)}${textCell(report.name)}${numberCell(summary.noGrade)}${numberCell(summary.failed)}${numberCell(summary.recovery)}${numberCell(summary.approved)}${numberCell(summary.withGrade)}</Row>`;
+      return `<Row>${textCell(report.category)}${textCell(report.reportUrl)}${textCell(report.name)}${numberCell(summary.noGrade)}${numberCell(summary.failed)}${numberCell(summary.recovery)}${numberCell(summary.approved)}${numberCell(summary.withGrade)}</Row>`;
     }).join('');
 
     const summarySheet = `<Worksheet ss:Name="Situação"><Table>
-      <Column ss:Width="260"/><Column ss:Width="290"/><Column ss:Width="80"/><Column ss:Width="85"/><Column ss:Width="90"/><Column ss:Width="85"/><Column ss:Width="100"/>
-      <Row>${['Origem', 'UC', 'Sem Nota', 'Reprovados', 'Recuperação', 'Aprovados', 'Total com Nota'].map((value) => textCell(value, 'Header')).join('')}</Row>${summaryRows}
+      <Column ss:Width="290"/><Column ss:Width="260"/><Column ss:Width="220"/><Column ss:Width="80"/><Column ss:Width="85"/><Column ss:Width="90"/><Column ss:Width="85"/><Column ss:Width="100"/>
+      <Row>${['Turma', 'Origem', 'UC', 'Sem Nota', 'Reprovados', 'Recuperação', 'Aprovados', 'Total com Nota'].map((value) => textCell(value, 'Header')).join('')}</Row>${summaryRows}
     </Table><WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel"><FreezePanes/><FrozenNoSplit/><SplitHorizontal>1</SplitHorizontal><TopRowBottomPane>1</TopRowBottomPane></WorksheetOptions></Worksheet>`;
 
     return `<?xml version="1.0" encoding="UTF-8"?><?mso-application progid="Excel.Sheet"?>
       <Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
         <Styles>
           <Style ss:ID="Default" ss:Name="Normal"><Alignment ss:Vertical="Center"/><Font ss:FontName="Calibri" ss:Size="11"/></Style>
-          <Style ss:ID="Header"><Alignment ss:Vertical="Center"/><Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#0F6CBF" ss:Pattern="Solid"/></Style>
+          <Style ss:ID="Header"><Alignment ss:Vertical="Center" ss:WrapText="1"/><Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#0F6CBF" ss:Pattern="Solid"/></Style>
           <Style ss:ID="Grade"><Alignment ss:Horizontal="Center"/><NumberFormat ss:Format="0.00"/></Style>
         </Styles>${worksheets}${summarySheet}
       </Workbook>`;
@@ -295,10 +342,11 @@
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     const date = new Intl.DateTimeFormat('pt-BR').format(new Date()).replace(/\//g, '-');
-    const category = reports.length === 1 ? reports[0].category || reports[0].name : `${reports.length} unidades`;
-    const safeCategory = category.replace(/[\\/:*?"<>|]/g, '-').slice(0, 90);
+    const groups = groupReportsByClass(reports);
+    const label = groups.length === 1 ? groups[0].category : `${groups.length} turmas`;
+    const safeLabel = label.replace(/[\\/:*?"<>|]/g, '-').slice(0, 90);
     anchor.href = url;
-    anchor.download = `Relatório de Notas ${date} - ${safeCategory}.xls`;
+    anchor.download = `Relatório de Notas ${date} - ${safeLabel}.xls`;
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();
@@ -326,10 +374,11 @@
     }
 
     if (reports.length) {
+      const classCount = groupReportsByClass(reports).length;
       downloadWorkbook(reports);
       setStatus(errors.length
-        ? `Relatório gerado com ${reports.length} unidade(s). ${errors.length} não puderam ser lidas: ${errors.join(' | ')}`
-        : `Relatório gerado com ${reports.length} unidade(s).`, errors.length ? 'warning' : 'success');
+        ? `Relatório gerado com ${reports.length} unidade(s) em ${classCount} turma(s). ${errors.length} não puderam ser lidas: ${errors.join(' | ')}`
+        : `Relatório gerado com ${reports.length} unidade(s) em ${classCount} turma(s).`, errors.length ? 'warning' : 'success');
     } else {
       setStatus(`Não foi possível gerar o relatório. ${errors.join(' | ')}`, 'error');
     }
