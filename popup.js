@@ -1,107 +1,12 @@
 'use strict';
-
-const SETTINGS_DEFAULTS = Object.freeze({
-  coursePendingChecks: true,
-  categoryPendingChecks: true,
-  pendingBadges: true,
-  pendingDownloads: true,
-});
-
-const MOODLE_HOSTS = new Set(['ead.fieg.com.br', 'ead.senai.br']);
-const inputs = [...document.querySelectorAll('input[data-setting]')];
-const status = document.getElementById('status');
-const saveButton = document.getElementById('save-settings');
-
-function setStatus(message, isError = false) {
-  status.textContent = message;
-  status.classList.toggle('is-error', isError);
-}
-
-function readSettings() {
-  return new Promise(resolve => {
-    if (!globalThis.chrome?.storage?.local) {
-      resolve({ ...SETTINGS_DEFAULTS });
-      return;
-    }
-
-    chrome.storage.local.get(SETTINGS_DEFAULTS, values => {
-      resolve(Object.fromEntries(Object.keys(SETTINGS_DEFAULTS).map(key => [
-        key,
-        typeof values[key] === 'boolean' ? values[key] : SETTINGS_DEFAULTS[key],
-      ])));
-    });
-  });
-}
-
-function writeSettings(settings) {
-  return new Promise((resolve, reject) => {
-    if (!globalThis.chrome?.storage?.local) {
-      resolve();
-      return;
-    }
-    chrome.storage.local.set(settings, () => {
-      const error = chrome.runtime.lastError;
-      if (error) reject(error);
-      else resolve();
-    });
-  });
-}
-
-function applySettings(settings) {
-  inputs.forEach(input => {
-    input.checked = Boolean(settings[input.dataset.setting]);
-  });
-}
-
-function currentSettings() {
-  return Object.fromEntries(inputs.map(input => [input.dataset.setting, input.checked]));
-}
-
-function isMoodleTab(tab) {
-  try {
-    const url = new URL(tab?.url || '');
-    return url.protocol === 'https:' && MOODLE_HOSTS.has(url.hostname);
-  } catch {
-    return false;
-  }
-}
-
-function reloadMoodleTab() {
-  if (!globalThis.chrome?.tabs?.query) return Promise.resolve(false);
-
-  return new Promise(resolve => {
-    chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
-      const tab = tabs?.[0];
-      if (!tab?.id || !isMoodleTab(tab) || !chrome.tabs.reload) {
-        resolve(false);
-        return;
-      }
-      chrome.tabs.reload(tab.id, {}, () => resolve(true));
-    });
-  });
-}
-
-async function saveAndApply() {
-  saveButton.disabled = true;
-  try {
-    await writeSettings(currentSettings());
-    setStatus('Salvo. Recarregando o Moodle…');
-    const reloaded = await reloadMoodleTab();
-    if (!reloaded) setStatus('Salvo. Abra uma página do Moodle para aplicar.');
-  } catch (error) {
-    setStatus(`Não foi possível salvar: ${error?.message || error}`, true);
-    saveButton.disabled = false;
-  }
-}
-
-async function initialize() {
-  try {
-    applySettings(await readSettings());
-    setStatus('Escolha as opções e clique em salvar.');
-    saveButton.addEventListener('click', saveAndApply);
-  } catch (error) {
-    setStatus(`Não foi possível carregar: ${error?.message || error}`, true);
-  }
-}
-
-initialize();
+const DEFAULTS={coursePendingChecks:true,categoryPendingChecks:true,pendingBadges:true,pendingDownloads:true};
+const inputs=[...document.querySelectorAll('[data-setting]')];
+const status=document.getElementById('status');
+const save=document.getElementById('save-settings');
+const setStatus=(message,error=false)=>{status.textContent=message;status.classList.toggle('is-error',error)};
+chrome.storage.local.get(DEFAULTS,values=>inputs.forEach(input=>input.checked=values[input.dataset.setting]!==false));
+save.addEventListener('click',()=>{save.disabled=true;const values=Object.fromEntries(inputs.map(input=>[input.dataset.setting,input.checked]));chrome.storage.local.set(values,()=>{setStatus('Configurações salvas.');save.disabled=false;});});
+async function activeTab(){const [tab]=await chrome.tabs.query({active:true,currentWindow:true});return tab;}
+async function runDrivePdf(){const tab=await activeTab();if(!tab?.id||!String(tab.url||'').startsWith('https://drive.google.com/')){setStatus('Abra um documento no Google Drive antes de usar Baixar PDF.',true);return;}await chrome.scripting.executeScript({target:{tabId:tab.id},files:['modules/drive-pdf/content.js']});window.close();}
+async function openKahoot(){const tab=await activeTab();if(!String(tab?.url||'').startsWith('https://create.kahoot.it/')){setStatus('Abra o editor do Kahoot antes de usar o KahootOmático.',true);return;}location.href=chrome.runtime.getURL('modules/kahoot/popup.html');}
+document.querySelectorAll('[data-action]').forEach(button=>button.addEventListener('click',()=>{const action=button.dataset.action;if(action==='drive-pdf')runDrivePdf().catch(error=>setStatus(error.message,true));else if(action==='kahoot')openKahoot().catch(error=>setStatus(error.message,true));else setStatus('As ferramentas Moodle são exibidas diretamente nas páginas compatíveis.');}));

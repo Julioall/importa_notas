@@ -1,66 +1,32 @@
 <!doctype html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Importador de Notas</title>
-    <link rel="stylesheet" href="popup.css">
-    <link rel="stylesheet" href="popup-refresh.css">
-  </head>
-  <body>
-    <main class="popup">
-      <header class="popup__header">
-        <div class="popup__mark">
-          <img src="icons/icon.svg" alt="">
-        </div>
-        <div>
-          <h1>Importador de Notas</h1>
-          <p>Preferências de pendências</p>
-        </div>
-      </header>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Ferramentas Educacionais</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main class="suite">
+    <header class="suite__header">
+      <div><h1>Ferramentas Educacionais</h1><p>Recursos para Moodle, Drive e Kahoot</p></div>
+    </header>
 
-      <section class="settings" aria-labelledby="settings-title">
-        <h2 id="settings-title">Verificações</h2>
-        <label class="setting">
-          <input type="checkbox" data-setting="coursePendingChecks">
-          <span>
-            <strong>Páginas de curso</strong>
-            <small>Consultar atividades e mostrar o resumo de pendências.</small>
-          </span>
-        </label>
-        <label class="setting">
-          <input type="checkbox" data-setting="categoryPendingChecks">
-          <span>
-            <strong>Páginas de categorias</strong>
-            <small>Agregar pendências dos cursos exibidos.</small>
-          </span>
-        </label>
-      </section>
+    <section><h2>Recursos ativos</h2>
+      <button class="tool" data-action="moodle"><span class="tool__icon">M</span><span><strong>Ferramentas Moodle</strong><small>Notas, relatórios, pendências e downloads</small></span><span class="chevron">›</span></button>
+      <button class="tool" data-action="drive-pdf"><span class="tool__icon blue">PDF</span><span><strong>Baixar PDF</strong><small>Preparar páginas do Google Drive para PDF</small></span><span class="chevron">›</span></button>
+      <button class="tool" data-action="kahoot"><span class="tool__icon purple">K</span><span><strong>KahootOmático</strong><small>Importar perguntas por CSV no editor</small></span><span class="chevron">›</span></button>
+    </section>
 
-      <section class="settings" aria-labelledby="display-title">
-        <h2 id="display-title">Exibição e ações</h2>
-        <label class="setting">
-          <input type="checkbox" data-setting="pendingBadges">
-          <span>
-            <strong>Indicadores de pendências</strong>
-            <small>Mostrar os indicadores junto às atividades e aos cursos.</small>
-          </span>
-        </label>
-        <label class="setting">
-          <input type="checkbox" data-setting="pendingDownloads">
-          <span>
-            <strong>Baixar pendentes</strong>
-            <small>Permitir downloads em lote na página de curso ou categoria.</small>
-          </span>
-        </label>
-      </section>
+    <section><h2>Comportamento</h2>
+      <label class="setting"><span><strong>Pendências nos cursos</strong><small>Consultar e exibir indicadores no Moodle</small></span><input type="checkbox" data-setting="coursePendingChecks"></label>
+      <label class="setting"><span><strong>Pendências nas categorias</strong><small>Consolidar os cursos exibidos</small></span><input type="checkbox" data-setting="categoryPendingChecks"></label>
+      <label class="setting"><span><strong>Indicadores visuais</strong><small>Mostrar etiquetas de situação</small></span><input type="checkbox" data-setting="pendingBadges"></label>
+      <label class="setting"><span><strong>Baixar pendentes</strong><small>Habilitar downloads em lote</small></span><input type="checkbox" data-setting="pendingDownloads"></label>
+    </section>
 
-      <div class="popup__actions">
-        <button type="button" id="save-settings">Salvar e aplicar</button>
-      </div>
-      <p id="status" class="status" role="status" aria-live="polite">Carregando configurações…</p>
-      <p class="hint">As alterações são aplicadas após recarregar a página do Moodle.</p>
-    </main>
-    <script src="popup.js"></script>
-  </body>
+    <footer><button id="save-settings">Salvar configurações</button><p id="status" role="status">Carregando…</p></footer>
+  </main>
+  <script src="popup.js"></script>
+</body>
 </html>
