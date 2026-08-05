@@ -1,0 +1,233 @@
+#mqi-panel-import .mqi-flow-stepper {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  margin: 0 0 22px;
+  padding: 0;
+  list-style: none;
+}
+
+#mqi-panel-import .mqi-flow-stepper li {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: #7a8590;
+  font-size: 12px;
+  text-align: center;
+}
+
+#mqi-panel-import .mqi-flow-stepper li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 15px;
+  left: calc(50% + 20px);
+  width: calc(100% - 40px);
+  height: 2px;
+  background: #dfe5ea;
+}
+
+#mqi-panel-import .mqi-flow-stepper span {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 2px solid #c8d0d8;
+  border-radius: 50%;
+  background: #fff;
+  color: #66717d;
+  font-weight: 700;
+}
+
+#mqi-panel-import .mqi-flow-stepper li.is-active {
+  color: #0f6cbf;
+}
+
+#mqi-panel-import .mqi-flow-stepper li.is-active span {
+  border-color: #0f6cbf;
+  background: #0f6cbf;
+  color: #fff;
+  box-shadow: 0 0 0 4px rgba(15, 108, 191, .12);
+}
+
+#mqi-panel-import .mqi-flow-heading {
+  margin-bottom: 18px;
+}
+
+#mqi-panel-import .mqi-flow-heading h3 {
+  margin: 0;
+  color: #27313b;
+  font-size: 17px;
+}
+
+#mqi-panel-import .mqi-flow-heading p {
+  margin: 5px 0 0;
+  color: #68737f;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+#mqi-panel-import .mqi-flow-page[hidden] {
+  display: none !important;
+}
+
+#mqi-panel-import .mqi-flow-result {
+  max-height: 330px;
+  overflow: auto;
+  padding: 16px;
+  border: 1px solid #dfe5ea;
+  border-radius: 9px;
+  background: #f8fafb;
+}
+
+#mqi-panel-import .mqi-flow-result.mqi-log--warning {
+  border-color: #ead28a;
+  background: #fff9e8;
+}
+
+#mqi-panel-import .mqi-flow-result.mqi-log--error {
+  border-color: #e9b0b0;
+  background: #fff2f2;
+}
+
+#mqi-panel-import .mqi-flow-result.mqi-log--success {
+  border-color: #a7d4b3;
+  background: #f1fbf4;
+}
+
+#mqi-panel-import .mqi-flow-empty {
+  margin: 0;
+  color: #76818c;
+  text-align: center;
+}
+
+#mqi-panel-import .mqi-flow-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid #edf0f2;
+}
+
+#mqi-panel-import .mqi-flow-actions .mqi-actions {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+
+#mqi-panel-import .mqi-flow-secondary {
+  min-width: 110px;
+  min-height: 42px;
+  border: 1px solid #cbd3da;
+  border-radius: 7px;
+  background: #fff;
+  color: #3d4853;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+#mqi-panel-import .mqi-flow-secondary:hover {
+  background: #f3f5f7;
+}
+
+#mqi-panel-import .mqi-flow-actions--end {
+  justify-content: flex-end;
+}
+
+#mqi-panel-import .mqi-flow-actions--end .primary {
+  min-width: 130px;
+  min-height: 42px;
+  border-radius: 7px;
+}
+
+#mqi-panel-import .mqi-flow-processing {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  min-height: 180px;
+  align-content: center;
+  padding: 24px;
+  color: #44505c;
+  text-align: center;
+}
+
+#mqi-panel-import .mqi-flow-processing small {
+  color: #74808b;
+}
+
+#mqi-panel-import .mqi-flow-spinner {
+  width: 34px;
+  height: 34px;
+  border: 3px solid #d7e5f1;
+  border-top-color: #0f6cbf;
+  border-radius: 50%;
+  animation: mqi-flow-spin .75s linear infinite;
+}
+
+#mqi-panel-import .mqi-flow-execution-content {
+  min-height: 220px;
+  border: 1px solid #dfe5ea;
+  border-radius: 9px;
+  background: #f8fafb;
+}
+
+#mqi-panel-import .mqi-flow-complete-mark {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  margin: 24px auto 12px;
+  place-items: center;
+  border-radius: 50%;
+  background: #e8f6ec;
+  color: #287b3f;
+  font-size: 25px;
+  font-weight: 800;
+}
+
+#mqi-panel-import .mqi-flow-complete-copy {
+  padding: 0 18px 20px;
+  text-align: center;
+}
+
+#mqi-panel-import .mqi-flow-complete-copy > strong {
+  display: block;
+  margin-bottom: 12px;
+  color: #27313b;
+  font-size: 16px;
+}
+
+#mqi-panel-import .mqi-flow-complete-copy .mqi-flow-result {
+  max-height: 230px;
+  margin-bottom: 12px;
+  text-align: left;
+}
+
+#mqi-modal .mqi-flow-source-log {
+  display: none !important;
+}
+
+@keyframes mqi-flow-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 620px) {
+  #mqi-panel-import .mqi-flow-stepper strong {
+    font-size: 11px;
+  }
+
+  #mqi-panel-import .mqi-flow-actions {
+    flex-direction: column-reverse;
+  }
+
+  #mqi-panel-import .mqi-flow-actions button,
+  #mqi-panel-import .mqi-flow-actions .mqi-actions,
+  #mqi-panel-import .mqi-flow-actions .mqi-actions button {
+    width: 100%;
+  }
+}
